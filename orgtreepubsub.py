@@ -27,14 +27,16 @@ Task = Callable[..., None]
 
 def main() -> None:
     pub.subscribe(spy, pub.ALL_TOPICS)
-    discover_all_things_in_organization(Session())
+    crawl_organization(Session())
 
 
 def spy(topic: Topic = pub.AUTO_TOPIC, **data: Any) -> None:
     print(f"{topic.getName()} {data}")
 
 
-def discover_all_things_in_organization(session: Session, max_workers: int = 8) -> None:
+def crawl_organization(
+    session: Session, max_workers: int = 4, loop_wait_timeout: int = 0.1
+) -> None:
     client = session.client("organizations")
     queue: "Queue[Task]" = Queue()
 
@@ -53,7 +55,9 @@ def discover_all_things_in_organization(session: Session, max_workers: int = 8) 
 
         while futures:
 
-            done, _ = wait(futures, timeout=0.5, return_when="FIRST_COMPLETED")
+            done, _ = wait(
+                futures, timeout=loop_wait_timeout, return_when="FIRST_COMPLETED"
+            )
 
             while not queue.empty():
                 futures.add(executor.submit(queue.get()))

@@ -1,5 +1,5 @@
 from pubsub import pub  # type: ignore[import]
-import networkx as nx
+import networkx as nx  # type: ignore[import]
 from boto3 import Session
 from orgtreepubsub import crawl_organization
 
@@ -19,13 +19,13 @@ def crawl_org_graph(session: Session) -> nx.Graph:
     return graph
 
 
-def add_root(graph: nx.Graph, resource: Root, org: Org):
+def add_root(graph: nx.Graph, resource: Root, org: Org) -> None:
     graph.add_edge(resource["Id"], org["Id"])
 
 
-def add_organizational_unit(graph: nx.Graph, resource: OrgUnit, parent: Parent):
+def add_organizational_unit(graph: nx.Graph, resource: OrgUnit, parent: Parent) -> None:
     graph.add_edge(resource["Id"], parent["Id"])
 
 
-def add_account(graph: nx.Graph, resource: Account, parent: Parent):
+def add_account(graph: nx.Graph, resource: Account, parent: Parent) -> None:
     graph.add_edge(resource["Id"], parent["Id"])

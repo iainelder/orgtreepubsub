@@ -17,7 +17,7 @@ def spy(topic: Topic = pub.AUTO_TOPIC, **data: Any) -> None:
 
 
 def crawl_organization(
-    session: Session, max_workers: int = 4, loop_wait_timeout: int = 0.1
+    session: Session, max_workers: int = 4, loop_wait_timeout: float = 0.1
 ) -> None:
     client = session.client("organizations")
     queue: "Queue[Task]" = Queue()

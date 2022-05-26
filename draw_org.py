@@ -1,5 +1,5 @@
 from boto3 import Session
-import networkx as nx
+import networkx as nx  # type: ignore[import]
 import matplotlib.pyplot as plt  # type: ignore[import]
 from org_graph import crawl_org_graph
 

@@ -4,11 +4,14 @@ An experiment to collect the AWS organization tree data using a
 publish-subscribe framework. The publish-subscribe pattern makes the code easier
 to read and makes it easier to extend for new organizations features.
 
+I chose [Pypubsub](https://pypubsub.readthedocs.io/en/v4.0.3/index.html) for the
+publish-subscribe framework because it's stable, well-documented and easy to
+use.
+
 ## Concurrency
 
-The chosen publish-subscribe framework is Pypubsub because it's well-documented
-and easy to use. But it doesn't have built-in support for concurrency, so a
-naive implementation will run each AWS API request serially.
+Pypubsub doesn't have built-in support for concurrency, so a naive
+implementation will run each AWS API request serially.
 
 The Organizations APIs permit a small amount of concurrent calls. Neither the
 concurrency limit nor the throttling limit is documented, but it can definitely
@@ -77,3 +80,37 @@ The timeout (dequeuing interval) doesn't appear to have much effect. In fact the
 timeout is an upper bound. The task loop stops waiting as soon as as the next
 future completes. So the interval probably only has an effect on the first
 iteration.
+
+## Prior Art
+
+[Orgcrawler](https://github.com/ucopacme/orgcrawler) provides a data model and
+methods for querying AWS Organizations resources: accounts, organizational
+units, service control policies. It can execute a custom boto3 payload function
+in all specified accounts/regions.
+
+It sounds like a combination of this tool and botocove. It appears to be
+abandoned, as it was last committed in April 2020 and has no updates to issues
+since then.
+
+
+## Drawing Options
+
+An AWS Organiziation can be modelled as a graph. How do you draw a graph?
+
+Networkx has some
+[built-in drawing](https://networkx.org/documentation/stable/reference/drawing.html),
+but discourages it. It recommends some other tools instead.
+
+> Proper graph visualization is hard, and we highly recommend that people
+> visualize their graphs with tools dedicated to that task. Notable examples of
+> dedicated and fully-featured graph visualization tools are
+> [Cytoscape](http://www.cytoscape.org/), [Gephi](https://gephi.org/), Graphviz
+> and, for [LaTeX](http://www.latex-project.org/) typesetting,
+> [PGF/TikZ](https://sourceforge.net/projects/pgf/). To use these and other such
+> tools, you should export your NetworkX graph into a format that can be read by
+> those tools. For example, Cytoscape can read the GraphML format, and so,
+> `networkx.write_graphml(G, path)` might be an appropriate choice.
+
+A friend recommends D3 with a
+[force-directed graph](https://observablehq.com/@d3/force-directed-graph)
+example and [github repo](https://github.com/d3/d3-force).

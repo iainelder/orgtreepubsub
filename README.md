@@ -127,3 +127,17 @@ A friend recommends D3 with a
 example and [github repo](https://github.com/d3/d3-force).
 
 [Creating beautiful stand-alone interactive D3 charts with Python](https://towardsdatascience.com/creating-beautiful-stand-alone-interactive-d3-charts-with-python-804117cb95a7)
+
+[Charming Data](https://www.youtube.com/c/CharmingData/about) is a Youtube
+channel with tutorials for Cytoscape.
+
+> My name is Adam and my passion is Dash Plotly. This channel will help you
+> become an expert in Dash and teach you how to use data visualization to create
+> beautiful dashboards, market your product, and develop your data science
+> career.
+>
+> Dash is a platform for building powerful web-based interactive apps,
+> in pure python. It's gaining hundreds of users daily, so join the family and
+> subscribe to this channel for access to weekly video tutorials.
+
+[Dash](https://plotly.com/dash/) apps give a point-&-click interface to models written in Python.

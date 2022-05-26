@@ -8,6 +8,17 @@ I chose [Pypubsub](https://pypubsub.readthedocs.io/en/v4.0.3/index.html) for the
 publish-subscribe framework because it's stable, well-documented and easy to
 use.
 
+orgtreepubsub works like an event-based crawler of the AWS organization
+structure.
+
+## Drawing
+
+Using networkx's built in drawing it can make very rudimendary drawings of
+organization graphs. A small organization is somewhat readable and looks like
+this:
+
+![Screenshot of a a AWS organization diagram shown in matplotlib.](2022-05-26-20-19-02.png)
+
 ## Concurrency
 
 Pypubsub doesn't have built-in support for concurrency, so a naive
@@ -114,3 +125,5 @@ but discourages it. It recommends some other tools instead.
 A friend recommends D3 with a
 [force-directed graph](https://observablehq.com/@d3/force-directed-graph)
 example and [github repo](https://github.com/d3/d3-force).
+
+[Creating beautiful stand-alone interactive D3 charts with Python](https://towardsdatascience.com/creating-beautiful-stand-alone-interactive-d3-charts-with-python-804117cb95a7)

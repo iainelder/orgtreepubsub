@@ -1,37 +1,19 @@
+import logging
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, Future, wait
-from typing import Any, Callable, Iterable, Optional, Union, Set
-from mypy_boto3_organizations.client import OrganizationsClient
-from mypy_boto3_organizations.type_defs import (
-    OrganizationTypeDef,
-    RootTypeDef,
-    OrganizationalUnitTypeDef,
-    AccountTypeDef,
-    TagTypeDef,
-)
+from typing import Any, Callable, Iterable, Optional, Set
 from boto3 import Session
 from pubsub import pub  # type: ignore[import]
 from pubsub.core import Topic  # type: ignore[import]
 
-Account = AccountTypeDef
-Org = OrganizationTypeDef
-OrgUnit = OrganizationalUnitTypeDef
-Root = RootTypeDef
-Tag = TagTypeDef
+from type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource, OrgClient
 
-Parent = Union[Root, OrgUnit]
-Resource = Union[Account, OrgUnit, Root]
 
 Task = Callable[..., None]
 
 
-def main() -> None:
-    pub.subscribe(spy, pub.ALL_TOPICS)
-    crawl_organization(Session())
-
-
 def spy(topic: Topic = pub.AUTO_TOPIC, **data: Any) -> None:
-    print(f"{topic.getName()} {data}")
+    logging.debug(f"{topic.getName()} {data}")
 
 
 def crawl_organization(
@@ -71,23 +53,23 @@ def crawl_organization(
             futures -= done
 
 
-def publish_organization(client: OrganizationsClient, queue: "Queue[Task]") -> None:
+def publish_organization(client: OrgClient, queue: "Queue[Task]") -> None:
     def _work() -> None:
         org = describe_organization(client)
         pub.sendMessage("organization", org=org)
     queue.put(_work)
 
 
-def publish_roots(client: OrganizationsClient, queue: "Queue[Task]", org: Org) -> None:
+def publish_roots(client: OrgClient, queue: "Queue[Task]", org: Org) -> None:
     def _work() -> None:
         for root in list_roots(client):
-            pub.sendMessage("root", resource=root)
+            pub.sendMessage("root", resource=root, org=org)
             pub.sendMessage("parent", parent=root)
     queue.put(_work)
 
 
 def publish_organizational_units(
-    client: OrganizationsClient, queue: "Queue[Task]", parent: Parent
+    client: OrgClient, queue: "Queue[Task]", parent: Parent
 ) -> None:
     def _work() -> None:
         for orgunit in list_organizational_units_for_parent(client, parent):
@@ -96,7 +78,7 @@ def publish_organizational_units(
     queue.put(_work)
 
 
-def publish_accounts(client: OrganizationsClient, queue: "Queue[Task]", parent: Parent) -> None:
+def publish_accounts(client: OrgClient, queue: "Queue[Task]", parent: Parent) -> None:
     def _work() -> None:
         for account in list_accounts_for_parent(client, parent):
             pub.sendMessage("account", resource=account, parent=parent)
@@ -104,10 +86,11 @@ def publish_accounts(client: OrganizationsClient, queue: "Queue[Task]", parent: 
 
 
 def publish_tags(
-    client: OrganizationsClient,
+    client: OrgClient,
     queue: "Queue[Task]",
     resource: Resource,
-    parent: Optional[Parent] = None
+    parent: Optional[Parent] = None,
+    org: Optional[Org] = None,
 ) -> None:
     def _work() -> None:
         for tag in list_tags_for_resource(client, resource):
@@ -115,11 +98,11 @@ def publish_tags(
     queue.put(_work)
 
 
-def describe_organization(client: OrganizationsClient) -> Org:
+def describe_organization(client: OrgClient) -> Org:
     return client.describe_organization()["Organization"]
 
 
-def list_roots(client: OrganizationsClient) -> Iterable[Root]:
+def list_roots(client: OrgClient) -> Iterable[Root]:
     pages = client.get_paginator("list_roots").paginate()
     for page in pages:
         for root in page["Roots"]:
@@ -127,7 +110,7 @@ def list_roots(client: OrganizationsClient) -> Iterable[Root]:
 
 
 def list_organizational_units_for_parent(
-    client: OrganizationsClient, parent: Parent
+    client: OrgClient, parent: Parent
 ) -> Iterable[OrgUnit]:
     pages = (
         client
@@ -139,9 +122,7 @@ def list_organizational_units_for_parent(
             yield orgunit
 
 
-def list_accounts_for_parent(
-    client: OrganizationsClient, parent: Parent
-) -> Iterable[Account]:
+def list_accounts_for_parent(client: OrgClient, parent: Parent) -> Iterable[Account]:
     pages = (
         client
         .get_paginator("list_accounts_for_parent")
@@ -152,9 +133,7 @@ def list_accounts_for_parent(
             yield account
 
 
-def list_tags_for_resource(
-    client: OrganizationsClient, resource: Resource
-) -> Iterable[Tag]:
+def list_tags_for_resource(client: OrgClient, resource: Resource) -> Iterable[Tag]:
     pages = (
         client
         .get_paginator("list_tags_for_resource")
@@ -163,7 +142,3 @@ def list_tags_for_resource(
     for page in pages:
         for tag in page["Tags"]:
             yield tag
-
-
-if __name__ == "__main__":
-    main()

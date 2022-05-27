@@ -11,6 +11,50 @@ use.
 orgtreepubsub works like an event-based crawler of the AWS organization
 structure.
 
+## Dumping
+
+Use `dump_org` to dump the AWS organization graph in [GraphML (Graph Markup
+Language)](https://cs.brown.edu/people/rtamassi/gdhandbook/chapters/graphml.pdf).
+
+```bash
+poetry run python dump_org.py > ~/tmp/org.graphml
+```
+
+Use the dump in any other graph analysis tool.
+
+Example output:
+
+```xml
+<?xml version='1.0' encoding='utf8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <graph edgedefault="undirected">
+    <node id="r-auh0" />
+    <node id="o-webyrpj5yp" />
+    <node id="ou-auh0-udicosld" />
+    <node id="ou-auh0-5qqlm6wn" />
+    <node id="ou-auh0-p5cmxwe9" />
+    <node id="644347852375" />
+    <node id="897617218731" />
+    <node id="975072629527" />
+    <node id="480783779961" />
+    <node id="139442570134" />
+    <node id="345132479590" />
+    <node id="749430203777" />
+    <edge source="r-auh0" target="o-webyrpj5yp" />
+    <edge source="r-auh0" target="ou-auh0-udicosld" />
+    <edge source="r-auh0" target="ou-auh0-5qqlm6wn" />
+    <edge source="r-auh0" target="ou-auh0-p5cmxwe9" />
+    <edge source="r-auh0" target="644347852375" />
+    <edge source="r-auh0" target="897617218731" />
+    <edge source="r-auh0" target="975072629527" />
+    <edge source="r-auh0" target="480783779961" />
+    <edge source="r-auh0" target="139442570134" />
+    <edge source="ou-auh0-udicosld" target="345132479590" />
+    <edge source="ou-auh0-5qqlm6wn" target="749430203777" />
+  </graph>
+</graphml>
+```
+
 ## Drawing
 
 Using networkx's built in drawing it can make very rudimendary drawings of

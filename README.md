@@ -185,3 +185,12 @@ channel with tutorials for Cytoscape.
 > subscribe to this channel for access to weekly video tutorials.
 
 [Dash](https://plotly.com/dash/) apps give a point-&-click interface to models written in Python.
+
+## Inspiration
+
+What do I want to draw?
+
+See here for examples.
+
+* [Cytoscape.js Demos](https://js.cytoscape.org/#demos)
+* [Gephi intro video](https://gephi.org/videos/)

@@ -186,6 +186,10 @@ channel with tutorials for Cytoscape.
 
 [Dash](https://plotly.com/dash/) apps give a point-&-click interface to models written in Python.
 
+[graph-tool](https://graph-tool.skewed.de/) is another Python graph library
+similar to NetworkX. It also has built-in
+[drawing functions](https://graph-tool.skewed.de/static/doc/draw.html).
+
 ## Inspiration
 
 What do I want to draw?
@@ -194,6 +198,21 @@ See here for examples.
 
 * [Cytoscape.js Demos](https://js.cytoscape.org/#demos)
 * [Gephi intro video](https://gephi.org/videos/)
+
+Click an organizational unit to see its accounts circled around around it like
+in the Cytoscape.js Wine and Cheese map.
+
+Click any node to get a pop-up with a link to the Organizations console like in
+the Cola.js gene-gene graph.
+
+Click and unclick nodes to extend and retract descendants like in the
+Breathfirst layout and images example.
+
+Click a node to update a view of its attributes in a key-value table. (Possible
+in Dash?)
+
+Search by any account attribute value (Id, Name, tag value, etc.) to select the
+account and its ancestors.
 
 ## Ignored properties in dump
 

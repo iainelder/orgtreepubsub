@@ -194,3 +194,44 @@ See here for examples.
 
 * [Cytoscape.js Demos](https://js.cytoscape.org/#demos)
 * [Gephi intro video](https://gephi.org/videos/)
+
+## Ignored properties in dump
+
+The following organization properties are ignored:
+
+*
+  [Organization AllowedPolicyTypes](https://docs.aws.amazon.com/organizations/latest/APIReference/API_Organization.html),
+  an array of
+  [PolicyTypeSummary](https://docs.aws.amazon.com/organizations/latest/APIReference/API_PolicyTypeSummary.html)
+  objects.
+*
+  [Root PolicyTypes](https://docs.aws.amazon.com/organizations/latest/APIReference/API_Root.html),
+  an array of PolicyTypeSummary objects.
+*
+  [Account JoinedTimestamp](https://docs.aws.amazon.com/organizations/latest/APIReference/API_Account.html),
+  a Timestamp unmarshalled by boto3 to datetime.
+
+I will find another way to represent these properties when I have a need for
+them.
+
+GraphML as implemented by NetworkX supports only simple scalar values such as
+strings and numbers. It raises error like this when I attempt to add something
+more complex:
+
+> `networkx.exception.NetworkXError: GraphML writer does not support <class
+> 'list'> as data values.`
+>
+> `networkx.exception.NetworkXError: GraphML writer does not support <class
+> 'datetime.datetime'> as data values.`
+
+The
+[GraphML primer](http://graphml.graphdrawing.org/primer/graphml-primer.html#Attributes)
+describes a GraphML-Attributes extension that supports only scalar values.
+
+> With the help of the extension GraphML-Attributes one can specify additional
+> information of simple type for the elements of the graph. Simple type means
+> that the information is restricted to scalar values, e.g. numerical values and
+> strings.
+
+NetworkX has an an open issue to
+[improve GraphML support](https://github.com/networkx/networkx/issues/4024).

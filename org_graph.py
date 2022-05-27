@@ -8,7 +8,7 @@ from type_defs import Account, Org, OrgUnit, Root, Parent
 
 def crawl_org_graph(session: Session) -> nx.Graph:
 
-    graph = nx.Graph()
+    graph = nx.DiGraph()
 
     pub.subscribe(add_root, "root", graph=graph)
     pub.subscribe(add_organizational_unit, "organizational_unit", graph=graph)
@@ -20,12 +20,12 @@ def crawl_org_graph(session: Session) -> nx.Graph:
 
 
 def add_root(graph: nx.Graph, resource: Root, org: Org) -> None:
-    graph.add_edge(resource["Id"], org["Id"])
+    graph.add_edge(org["Id"], resource["Id"])
 
 
 def add_organizational_unit(graph: nx.Graph, resource: OrgUnit, parent: Parent) -> None:
-    graph.add_edge(resource["Id"], parent["Id"])
+    graph.add_edge(parent["Id"], resource["Id"])
 
 
 def add_account(graph: nx.Graph, resource: Account, parent: Parent) -> None:
-    graph.add_edge(resource["Id"], parent["Id"])
+    graph.add_edge(parent["Id"], resource["Id"])

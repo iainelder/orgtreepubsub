@@ -6,7 +6,7 @@ from orgtreepubsub import crawl_organization
 from type_defs import Account, Org, OrgUnit, Root, Parent
 
 
-def crawl_org_graph(session: Session) -> nx.Graph:
+def get_org_graph(session: Session) -> nx.Graph:
 
     graph = nx.DiGraph()
 

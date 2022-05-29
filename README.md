@@ -265,8 +265,8 @@ Setup.
 from pprint import pprint
 from boto3 import Session
 import networkx as nx
-from org_graph import crawl_org_graph
-graph = crawl_org_graph(Session())
+from org_graph import get_org_graph
+graph = get_org_graph(Session())
 ```
 
 Find an OU by name.

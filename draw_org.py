@@ -1,11 +1,11 @@
 from boto3 import Session
 import networkx as nx  # type: ignore[import]
 import matplotlib.pyplot as plt  # type: ignore[import]
-from org_graph import crawl_org_graph
+from org_graph import get_org_graph
 
 
 def main() -> None:
-    graph = crawl_org_graph(Session())
+    graph = get_org_graph(Session())
     draw(graph)
 
 

@@ -254,3 +254,87 @@ describes a GraphML-Attributes extension that supports only scalar values.
 
 NetworkX has an an open issue to
 [improve GraphML support](https://github.com/networkx/networkx/issues/4024).
+
+## Org Graph algorithms
+
+Later I'll add these as functions to the org_graph module.
+
+Setup.
+
+```python
+from pprint import pprint
+from boto3 import Session
+import networkx as nx
+from org_graph import crawl_org_graph
+graph = crawl_org_graph(Session())
+```
+
+Find an OU by name.
+
+```python
+[id for id, attrs in graph.nodes.items() if attrs.get("Name") == "Suspended"]
+```
+
+List OU names.
+
+```python
+pprint(
+    sorted(
+        [
+            [attrs["Id"], attrs["Name"]]
+            for attrs in graph.nodes.values()
+            if attrs["type"] == "organizational_unit"
+        ],
+        key=lambda n: n[1],
+    )
+)
+```
+
+Count direct descendant accounts of an OU.
+
+```python
+sum(
+    1
+    for child in graph["r-...."]
+    if graph.nodes[child]["type"] == "account"
+)
+```
+
+Count all descendant accounts of an OU.
+
+```python
+sum(
+    1
+    for n in nx.descendants(graph, "r-....")
+    if graph.nodes[n]["type"] == "account"
+)
+```
+
+Get the organization root.
+
+```python
+[id for id, attrs in graph.nodes.items() if attrs["type"] == "root"]
+```
+
+Get path for account with ID components.
+
+```python
+root = next(id for id, attrs in graph.nodes.items() if attrs["type"] == "root")
+components = nx.shortest_path(graph, root, "111111111111")
+f"/{'/'.join(components)}"
+```
+
+Get path for account with name components.
+
+```python
+root = next(id for id, attrs in graph.nodes.items() if attrs["type"] == "root")
+components = nx.shortest_path(graph, root, "11111111111")
+named_components = [graph.nodes[n]["Name"] for n in components]
+f"/{'/'.join(named_components)}"
+```
+
+Get policies affecting an account.
+
+```python
+# TODO: Add policies to graph.
+```

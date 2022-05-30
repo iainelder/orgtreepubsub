@@ -338,3 +338,8 @@ Get policies affecting an account.
 ```python
 # TODO: Add policies to graph.
 ```
+
+## Org Browser
+
+The org browser GUI is written using Tkinter (Tcl/Tk interface), Python's
+built-in GUI framework.

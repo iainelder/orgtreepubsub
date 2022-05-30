@@ -12,6 +12,7 @@ mypy-boto3-organizations = "^1.23.0"
 PyPubSub = "^4.0.3"
 networkx = "^2.8.2"
 matplotlib = "^3.5.2"
+pydot = "^1.4.2"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.960"

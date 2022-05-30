@@ -46,6 +46,10 @@ def add_account(graph: nx.DiGraph, resource: Account, parent: Parent) -> None:
     graph.add_edge(parent["Id"], resource["Id"])
 
 
+def get_root(graph: nx.DiGraph) -> Root:
+    return next(id for id, attrs in graph.nodes.items() if attrs["type"] == "root")
+
+
 def read_graphml(file: BinaryIO) -> nx.DiGraph:
     return nx.read_graphml(file)
 

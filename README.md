@@ -339,6 +339,15 @@ Get policies affecting an account.
 # TODO: Add policies to graph.
 ```
 
+Idea: Create an Organization class. Store the graph as a attribute of the
+organization. Remove the organization node from the graph. Store the
+organization properties in the organization object. I thought about inheriting
+from DiGraph directly, but that would be a misuse of inheritance because of
+fatal interface bloat and because it conflates the domain class (Organization)
+with the implementation class (DiGraph). See Stephen Lowe's
+[Composition vs. Inheritance: How to Choose?](https://www.thoughtworks.com/insights/blog/composition-vs-inheritance-how-choose)
+for an explanation.
+
 ## Org Browser
 
 The org browser GUI is written using Tkinter (Tcl/Tk interface), Python's

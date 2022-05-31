@@ -46,7 +46,8 @@ def add_account(graph: nx.DiGraph, resource: Account, parent: Parent) -> None:
     graph.add_edge(parent["Id"], resource["Id"])
 
 
-def get_root(graph: nx.DiGraph) -> Root:
+def get_root(graph: nx.DiGraph) -> str:
+    """Return the ID of the organization Root resource."""
     return next(id for id, attrs in graph.nodes.items() if attrs["type"] == "root")
 
 

@@ -343,3 +343,27 @@ Get policies affecting an account.
 
 The org browser GUI is written using Tkinter (Tcl/Tk interface), Python's
 built-in GUI framework.
+
+I want a table of account rows. The columns are all the properties of the
+account and and all the tag keys.
+
+I want a tree of organizational units. The name, the ID, and the number of
+accounts in the OU should be visible.
+
+Some ideas for for working with the data:
+
+* https://github.com/dmnfarrell/pandastable (see DataExplore application)
+
+If Tkinter becomes difficult to use, there are other GUI frameworks referenced
+by
+[Claire D. Costa's survey article](https://towardsdatascience.com/top-10-python-gui-frameworks-for-developers-adca32fbe6fc):
+
+* PyQt (bindings for Qt)
+* Kivy (implements a natural user interface (NUI))
+* wxPython
+* libavg (maybe for visualization)
+* PySimpleGUI (handles boilerplate for Qt, Tkinter, WxPython, and Remi)
+* PyForms (a framework for apps that work in desktop, terminal and web)
+* Wax (a high-level wrapper for wxPython)
+* PySide2 (more bidings for QT, by the Qt developers)
+* PyGUI

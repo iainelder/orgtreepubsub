@@ -11,6 +11,14 @@ use.
 orgtreepubsub works like an event-based crawler of the AWS organization
 structure.
 
+## Browsing
+
+If you already have an org dump, you can view it like this.
+
+```bash
+cat ~/tmp/org.graphml | poetry run python org_browser.py
+```
+
 ## Dumping
 
 Use `dump_org` to dump the AWS organization graph in [GraphML (Graph Markup
@@ -352,6 +360,11 @@ for an explanation.
 
 The org browser GUI is written using Tkinter (Tcl/Tk interface), Python's
 built-in GUI framework.
+
+TkDocs.com has an intro to the
+[grid geometry manager](https://tkdocs.com/tutorial/grid.html) and puts it in
+historical context (pack came first). I like this site; it's like the missing
+manual for Tkinter.
 
 I want a table of account rows. The columns are all the properties of the
 account and and all the tag keys.

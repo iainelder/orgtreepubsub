@@ -13,6 +13,7 @@ PyPubSub = "^4.0.3"
 networkx = "^2.8.2"
 matplotlib = "^3.5.2"
 pydot = "^1.4.2"
+pandastable = "^0.13.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.960"

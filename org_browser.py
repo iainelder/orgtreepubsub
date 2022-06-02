@@ -4,6 +4,8 @@ from pubsub.core import Topic
 import sys
 import tkinter as tk
 from tkinter import ttk
+from pandastable import Table
+import pandas as pd
 from org_graph import read_graphml, get_root
 import networkx as nx  # ignore: type[import]
 from type_defs import Account, Parent, OrgUnit, Root, Org
@@ -11,18 +13,40 @@ from type_defs import Account, Parent, OrgUnit, Root, Org
 class Browser(ttk.Frame):
 
     tree: ttk.Treeview
-    table: ttk.Treeview
+    # table: ttk.Treeview
+    table: Table
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.init_table_using_pandastable()
 
+
+    def init_tree_using_treeview(self):
         tree_label = ttk.Label(self, text="Organizational Units")
         tree_label.grid(column=0, row=0)
         self.tree = ttk.Treeview(self)
         self.tree.grid(column=0, row=1)
 
+
+    def init_table_using_pandastable(self):
         table_label = ttk.Label(self, text="Accounts")
         table_label.grid(column=1, row=0)
+
+        columns = [
+            "Id", "Name", "Email", "JoinedTimestamp", "Status", "JoinedMethod", "Arn"
+        ]
+
+        self.table = Table(self,
+          dataframe=pd.DataFrame(columns=columns),
+          showtoolbar=True,
+          showstatusbar=True
+        )
+
+        self.table.grid(column=1, row=1)
+        self.table.show()
+
+
+    def init_table_using_treeview(self):
         self.table = ttk.Treeview(self)
         self.table.grid(column=1, row=1)
 
@@ -66,10 +90,12 @@ class Browser(ttk.Frame):
             resource["Status"],
             resource["JoinedMethod"],
             resource["Arn"]
-        ]
+        ]                                                                                                                                                                                                                                                                       
 
-        self.table.insert("", "end", iid=resource["Id"], text=resource["Id"], values=row)
-    
+        next_index = len(self.table.model.df.index)
+        self.table.model.df.loc[next_index] = row
+        self.table.redraw()
+
 
     def add_organizational_unit(self, resource: OrgUnit, parent: Parent):
         self.tree.insert(parent["Id"], "end", iid=resource["Id"], text=resource["Id"])
@@ -81,8 +107,8 @@ class Browser(ttk.Frame):
 
     def load_graph(self, graph: nx.DiGraph) -> None:
         pub.subscribe(self.add_account, "account")
-        pub.subscribe(self.add_organizational_unit, "organizational_unit")
-        pub.subscribe(self.add_root, "root")
+        #pub.subscribe(self.add_organizational_unit, "organizational_unit")
+        #pub.subscribe(self.add_root, "root")
 
         id = get_root(graph)
         pub.sendMessage("root", root_id=id)

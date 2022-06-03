@@ -1,6 +1,5 @@
 from org_graph import read_graphml, get_root
 from typing import Callable, List
-import sys
 import tkinter as tk
 from tkinter import ttk
 
@@ -88,7 +87,7 @@ class MillerColumns(tk.Tk):
             miller.insert(parent="", index="end", iid=item, text=item, values=(item,))
 
     def on_quit(self, event: "tk.Event[tk.Misc]") -> None:
-        sys.exit(0)
+        self.destroy()
 
 
 if __name__ == "__main__":

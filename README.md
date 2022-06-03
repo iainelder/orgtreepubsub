@@ -372,6 +372,27 @@ account and and all the tag keys.
 I want a tree of organizational units. The name, the ID, and the number of
 accounts in the OU should be visible.
 
+Maybe I want [Miller columns](https://en.wikipedia.org/wiki/Miller_columns). I
+first heard about them when reading about Appian's [interface components for
+hierarchies](https://docs.appian.com/suite/help/22.1/User_and_Group_Browser_Components.html).
+
+Miller column pros: "In all cases, the technique is appropriate for structures
+with high degree (large fanout). For low-degree structures, outline editors or
+graph viewers are more effective." The OUs that have accounts have large fanout.
+So this might be an appropriate technique.
+
+Miller column cons: "The necessity of horizontal scrollbars when displaying
+deeper folder structures". The depth is limited to 5 for OUs, so I think it
+won't be a problem. "Sort options and metadata display are limited". To display
+metadata, I might need to use other parts of the screen to display properties
+and tags.
+
+Tkinter doesn't have a miller columns widget. I tried to build one myself. See
+miller_demo.py.
+
+Qt has the [QColumnView](https://doc.qt.io/qt-5/qcolumnview.html) class. This
+could be a compelling reason to switch to Qt for the GUI.
+
 Some ideas for for working with the data:
 
 * https://github.com/dmnfarrell/pandastable (see DataExplore application)

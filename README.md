@@ -393,9 +393,21 @@ miller_demo.py.
 Qt has the [QColumnView](https://doc.qt.io/qt-5/qcolumnview.html) class. This
 could be a compelling reason to switch to Qt for the GUI.
 
+The PySide2 documentation has some examples of model-view-controller (MVC)
+design that helps to maintain clean code. The TkDocs site doesn't seem to
+mention the pattern, but a quick search online shows a simple and clear example
+from [pythontutorial.net]( https://www.pythontutorial.net/tkinter/tkinter-mvc/).
+
+From this example I see that my model is clearly the org_graph module and that
+is already well separated. But I am conflating the view and controller concepts
+in my apps. Also it shows that the view and the app can be defined separately.
+The app is like a main method that joins all the components together at a high
+level and routes input and output.
+
 Some ideas for for working with the data:
 
-* https://github.com/dmnfarrell/pandastable (see DataExplore application)
+* https://github.com/dmnfarrell/pandastable (see DataExplore application. There
+  is also a Qt version)
 
 If Tkinter becomes difficult to use, there are other GUI frameworks referenced
 by

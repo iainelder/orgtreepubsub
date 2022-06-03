@@ -64,13 +64,19 @@ class MillerColumns(tk.Tk):
 
     def on_click_miller(self, event: tk.Event) -> None:
         clicked_miller = cast(ttk.Treeview, event.widget)
-        selected = clicked_miller.selection()[0]
-        print(repr(event))
-        print(selected)
-        children = self.get_children(selected)
-        print(children)
-        next_miller = self.append_miller(selected)
-        self.fill_miller(next_miller, children)
+        grid_info = clicked_miller.grid_info()
+        last_index = self.miller_count() - 1
+        clicked_index = grid_info["column"]
+
+        for i in range(last_index, clicked_index, -1):
+            self.grid_slaves(row=0, column=i)[0].destroy()
+
+        selected = clicked_miller.selection()
+        if selected:
+            parent = selected[0]
+            children = self.get_children(parent)
+            next_miller = self.append_miller(parent)
+            self.fill_miller(next_miller, children)
 
     def append_miller(self, name) -> ttk.Treeview:
         next_index = self.miller_count()

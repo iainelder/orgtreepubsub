@@ -1,3 +1,4 @@
+from threading import Thread
 from typing import Any
 from pubsub import pub
 from pubsub.core import Topic
@@ -10,16 +11,31 @@ from org_graph import read_graphml, get_root
 import networkx as nx  # ignore: type[import]
 from type_defs import Account, Parent, OrgUnit, Root, Org
 
-class Browser(ttk.Frame):
+class Browser(tk.Tk):
 
     tree: ttk.Treeview
     # table: ttk.Treeview
     table: Table
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.init_table_using_pandastable()
+    def __init__(self, root):
+        super().__init__(root)
 
+        self.grid()
+
+        table_label = ttk.Label(self, text="Accounts")
+        table_label.grid(column=0, row=0)
+
+        # self.table = self.build_table()
+        # self.table.grid(column=0, row=1, sticky="NSEW")
+
+        self.init_tree_using_treeview()
+        self.init_table_using_treeview()
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(0, weight=1)
+
+        # self.table.show()
 
     def init_tree_using_treeview(self):
         tree_label = ttk.Label(self, text="Organizational Units")
@@ -28,22 +44,20 @@ class Browser(ttk.Frame):
         self.tree.grid(column=0, row=1)
 
 
-    def init_table_using_pandastable(self):
-        table_label = ttk.Label(self, text="Accounts")
-        table_label.grid(column=1, row=0)
+    def build_table(self) -> Table:
 
         columns = [
             "Id", "Name", "Email", "JoinedTimestamp", "Status", "JoinedMethod", "Arn"
         ]
 
-        self.table = Table(self,
-          dataframe=pd.DataFrame(columns=columns),
-          showtoolbar=True,
-          showstatusbar=True
+        table = Table(
+            self,
+            dataframe=pd.DataFrame(columns=columns),
+            showtoolbar=True,
+            showstatusbar=True
         )
 
-        self.table.grid(column=1, row=1)
-        self.table.show()
+        return table
 
 
     def init_table_using_treeview(self):
@@ -90,11 +104,9 @@ class Browser(ttk.Frame):
             resource["Status"],
             resource["JoinedMethod"],
             resource["Arn"]
-        ]                                                                                                                                                                                                                                                                       
+        ]
 
-        next_index = len(self.table.model.df.index)
-        self.table.model.df.loc[next_index] = row
-        self.table.redraw()
+        self.table.insert("", "end", iid=resource["Id"], text=resource["Id"])
 
 
     def add_organizational_unit(self, resource: OrgUnit, parent: Parent):
@@ -129,12 +141,19 @@ def spy(topic: Topic = pub.AUTO_TOPIC, **data: Any) -> None:
 
 
 def start_browser(graph: nx.DiGraph) -> None:
-    root = tk.Tk()
-    browser = Browser(root, padding=10)
-    browser.grid()
-    browser.load_graph(graph)
-    root.mainloop()
+    # root = tk.Tk()
+    # root.grid()
+    # root.grid_rowconfigure(0, weight=1)
+    # root.grid_columnconfigure(0, weight=1)
+    browser = Browser(None)
+    #browser.bind("<Configure>", redraw_table)
+    Thread(target=browser.load_graph, args=[graph]).start()
+    browser.mainloop()
 
+
+def redraw_table(event: tk.Event):
+    print(event)
+    event.widget.table.redraw()
 
 if __name__ == "__main__":
     main()

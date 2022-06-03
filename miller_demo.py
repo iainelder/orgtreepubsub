@@ -1,5 +1,5 @@
 from org_graph import read_graphml, get_root
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, cast
 import tkinter as tk
 from tkinter import ttk
 
@@ -22,8 +22,20 @@ class MillerColumn(ttk.Treeview):
         super().__init__(*args, **kwargs)
         self.ancestor_of_visible_children = None
 
+    def fill(self, items: List[str]) -> None:
+        for c in self.get_children():
+            self.delete(c)
+
+        for item in items:
+            self.insert(parent="", index="end", iid=item, text=item, values=(item,))
+
+    def depth(self) -> int:
+        return self.grid_info()["column"]
+
 
 class MillerApp(tk.Tk):
+
+    levels: List[MillerColumn]
 
     def __init__(
         self,
@@ -31,6 +43,7 @@ class MillerApp(tk.Tk):
         get_children: Callable[[str], List[str]]
     ) -> None:
         super().__init__()
+        self.levels = []
         self.root = root
         self.get_children = get_children
 
@@ -38,15 +51,21 @@ class MillerApp(tk.Tk):
 
         self.grid_rowconfigure(0, weight=1)
 
-        miller = self.place_miller(0, root)
-        self.fill_miller(miller, get_children(root))
+        self.show_miller(0, root)
 
         self.bind_quit_events()
     
     def bind_quit_events(self) -> None:
         self.bind_all("<Alt-KeyPress-F4>", self.on_quit)
         self.bind_all("<Alt-KeyPress-q>", self.on_quit)
-    
+
+    def show_miller(self, depth: int, name: str):
+        if depth >= len(self.levels):
+            self.levels.append(self.place_miller(depth, name))
+        miller = self.levels[depth]
+        miller.grid(column=depth, row=0, sticky="NSEW")
+        miller.fill(self.get_children(name))
+
     def place_miller(self, index: int, name: str) -> MillerColumn:
         columns = ["Name"]
 
@@ -80,29 +99,28 @@ class MillerApp(tk.Tk):
         if selected_item == clicked_miller.ancestor_of_visible_children:
             return
 
-        grid_info = clicked_miller.grid_info()
-        last_index = self.miller_count() - 1
-        clicked_index = grid_info["column"]
+        clicked_depth = clicked_miller.depth()
+        visible_depth = self.visible_depth()
 
-        for i in range(last_index, clicked_index, -1):
-            self.grid_slaves(row=0, column=i)[0].destroy()
+        if clicked_depth + 1 < visible_depth:
+            self.hide_millers_deeper_than(clicked_depth + 1)
 
-        children = self.get_children(selected_item)
-        next_miller = self.append_miller(selected_item)
-        self.fill_miller(next_miller, children)
+        self.show_miller(clicked_depth + 1, selected_item)
 
         clicked_miller.ancestor_of_visible_children = selected_item
 
-    def append_miller(self, name: str) -> MillerColumn:
-        next_index = self.miller_count()
-        return self.place_miller(next_index, name)
+        print(self.grid_slaves())
 
-    def miller_count(self) -> int:
+    def visible_depth(self) -> int:
         return len(self.grid_slaves())
-    
-    def fill_miller(self, miller: MillerColumn, items: List[str]) -> None:
-        for item in items:
-            miller.insert(parent="", index="end", iid=item, text=item, values=(item,))
+
+    def visible_millers(self) -> List[MillerColumn]:
+        return cast(MillerColumn, self.grid_slaves(row=0))
+
+    def hide_millers_deeper_than(self, threshold: int) -> None:
+        for miller in self.visible_millers():
+            if miller.depth() > threshold:
+                miller.grid_remove()
 
     def on_quit(self, event: "tk.Event[tk.Misc]") -> None:
         self.destroy()

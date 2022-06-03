@@ -1,10 +1,10 @@
 import networkx as nx  # type: ignore[import]
 import matplotlib.pyplot as plt  # type: ignore[import]
-from org_browser import read_graphml
+from org_graph import read_graphml
 import sys
 import matplotlib.pyplot as plt
 import networkx as nx
-from networkx.drawing.nx_pydot import graphviz_layout
+from networkx.drawing.nx_pydot import graphviz_layout  # type: ignore[import]
 
 def main() -> None:
     graph = read_graphml(sys.stdin.buffer)

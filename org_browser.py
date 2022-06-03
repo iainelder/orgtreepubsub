@@ -1,11 +1,11 @@
 from typing import Any
-from pubsub import pub
-from pubsub.core import Topic
+from pubsub import pub  # type: ignore[import]
+from pubsub.core import Topic  # type: ignore[import]
 import sys
 import tkinter as tk
 from tkinter import ttk
 from org_graph import read_graphml, get_root
-import networkx as nx  # ignore: type[import]
+import networkx as nx  # type: ignore[import]
 from type_defs import Account, Parent, OrgUnit, Root, Org
 
 class Browser(ttk.Frame):
@@ -13,7 +13,7 @@ class Browser(ttk.Frame):
     tree: ttk.Treeview
     table: ttk.Treeview
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         tree_label = ttk.Label(self, text="Organizational Units")
@@ -38,7 +38,7 @@ class Browser(ttk.Frame):
         self.table["show"] ="headings"
 
 
-    def insert_dummy_data(self):
+    def insert_dummy_data(self) -> None:
         self.tree.insert("", "end", iid="root", text="root")
         self.tree.insert("root", "end", iid="OU 1", text="OU 1")
         self.tree.insert("root", "end", iid="OU 2", text="OU 2")
@@ -57,7 +57,7 @@ class Browser(ttk.Frame):
         )
 
 
-    def add_account(self, resource: Account, parent: Parent):        
+    def add_account(self, resource: Account, parent: Parent) -> None:
         row = [
             resource["Id"],
             resource["Name"],
@@ -71,11 +71,11 @@ class Browser(ttk.Frame):
         self.table.insert("", "end", iid=resource["Id"], text=resource["Id"], values=row)
     
 
-    def add_organizational_unit(self, resource: OrgUnit, parent: Parent):
+    def add_organizational_unit(self, resource: OrgUnit, parent: Parent) -> None:
         self.tree.insert(parent["Id"], "end", iid=resource["Id"], text=resource["Id"])
 
 
-    def add_root(self, root_id: str): # TODO: sent Root object
+    def add_root(self, root_id: str) -> None: # TODO: sent Root object
         self.tree.insert("", "end", iid=root_id, text=root_id)
 
 

@@ -1,10 +1,8 @@
 from org_graph import read_graphml, get_root
-from typing import Any, Callable, List, TypeVar, cast
+from typing import Callable, List
 import sys
 import tkinter as tk
 from tkinter import ttk
-
-T = TypeVar("T")
 
 def main() -> None:
     org_tree = read_graphml("/home/isme/tmp/int_org.graphml")
@@ -21,8 +19,8 @@ class MillerColumns(tk.Tk):
 
     def __init__(
         self,
-        root: T,
-        get_children: Callable[[T], List[T]]
+        root: str,
+        get_children: Callable[[str], List[str]]
     ) -> None:
         super().__init__()
         self.root = root
@@ -37,9 +35,9 @@ class MillerColumns(tk.Tk):
 
         self.bind_quit_events()
     
-    def bind_quit_events(self):
-        self.bind_all("<Alt-KeyPress-F4>", self.quit)
-        self.bind_all("<Alt-KeyPress-q>", self.quit)
+    def bind_quit_events(self) -> None:
+        self.bind_all("<Alt-KeyPress-F4>", self.on_quit)
+        self.bind_all("<Alt-KeyPress-q>", self.on_quit)
     
     def place_miller(self, index: int, name: str) -> ttk.Treeview:
         columns = ["Name"]
@@ -62,8 +60,8 @@ class MillerColumns(tk.Tk):
         
         return miller
 
-    def on_click_miller(self, event: tk.Event) -> None:
-        clicked_miller = cast(ttk.Treeview, event.widget)
+    def on_click_miller(self, event: "tk.Event[ttk.Treeview]") -> None:
+        clicked_miller = event.widget
         grid_info = clicked_miller.grid_info()
         last_index = self.miller_count() - 1
         clicked_index = grid_info["column"]
@@ -78,7 +76,7 @@ class MillerColumns(tk.Tk):
             next_miller = self.append_miller(parent)
             self.fill_miller(next_miller, children)
 
-    def append_miller(self, name) -> ttk.Treeview:
+    def append_miller(self, name: str) -> ttk.Treeview:
         next_index = self.miller_count()
         return self.place_miller(next_index, name)
 
@@ -88,11 +86,8 @@ class MillerColumns(tk.Tk):
     def fill_miller(self, miller: ttk.Treeview, items: List[str]) -> None:
         for item in items:
             miller.insert(parent="", index="end", iid=item, text=item, values=(item,))
-    
-    def get_miller(self, index: int) -> ttk.Treeview:
-        return self.grid_slaves()[index]
 
-    def quit(self, event: tk.Event):
+    def on_quit(self, event: "tk.Event[tk.Misc]") -> None:
         sys.exit(0)
 
 

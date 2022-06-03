@@ -13,7 +13,7 @@ def main() -> None:
 # https://stackoverflow.com/questions/24644339/python-tkinter-resize-widgets-evenly-in-a-window
 class Checkerboard(tk.Tk):
 
-    def __init__(self, size: int = 2, words = "HOW DO YOU DO") -> None:
+    def __init__(self, size: int = 2, words: str = "HOW DO YOU DO") -> None:
         super().__init__()
         self.grid()
 

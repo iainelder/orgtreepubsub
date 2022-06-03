@@ -1,6 +1,6 @@
 from copy import deepcopy
 import sys
-from typing import BinaryIO
+from typing import BinaryIO, Union, cast
 from pubsub import pub  # type: ignore[import]
 import networkx as nx  # type: ignore[import]
 from boto3 import Session
@@ -8,6 +8,10 @@ from orgtreepubsub import crawl_organization
 
 from type_defs import Account, Org, OrgUnit, Root, Parent
 
+# NetworkX accepts a file handle for I/O. This is useful for writing to stdout.
+# It also accepts a str path to a file and manages the file handle itself. This
+# is convenient for reading.
+File = Union[BinaryIO, str]
 
 def get_org_graph(session: Session) -> nx.Graph:
 
@@ -24,38 +28,37 @@ def get_org_graph(session: Session) -> nx.Graph:
 
 
 def add_organization(graph: nx.DiGraph, org: Org) -> None:
-    org["type"] = "organization"
-    graph.add_node(org["Id"], **org)
+    graph.add_node(org["Id"], **org, type="organization")
 
 
 def add_root(graph: nx.DiGraph, resource: Root, org: Org) -> None:
-    resource["type"] = "root"
-    graph.add_node(resource["Id"], **resource)
+    graph.add_node(resource["Id"], **resource, type="root")
     graph.add_edge(org["Id"], resource["Id"])
 
 
 def add_organizational_unit(graph: nx.DiGraph, resource: OrgUnit, parent: Parent) -> None:
-    resource["type"] = "organizational_unit"
-    graph.add_node(resource["Id"], **resource)
+    graph.add_node(resource["Id"], **resource, type="organizational_unit")
     graph.add_edge(parent["Id"], resource["Id"])
 
 
 def add_account(graph: nx.DiGraph, resource: Account, parent: Parent) -> None:
-    resource["type"] = "account"
-    graph.add_node(resource["Id"], **resource)
+    graph.add_node(resource["Id"], **resource, type="account")
     graph.add_edge(parent["Id"], resource["Id"])
 
 
 def get_root(graph: nx.DiGraph) -> str:
     """Return the ID of the organization Root resource"""
-    return next(id for id, attrs in graph.nodes.items() if attrs["type"] == "root")
+    for id, attrs in graph.nodes.items():
+        if attrs["type"] == "root":
+            return cast(str, id)
+    raise AssertionError("graph has no root node")
 
 
-def read_graphml(file: BinaryIO) -> nx.DiGraph:
+def read_graphml(file: File) -> nx.DiGraph:
     return nx.read_graphml(file)
 
 
-def write_graphml(graph: nx.Graph, file: BinaryIO=sys.stdout.buffer) -> None:
+def write_graphml(graph: nx.Graph, file: File = sys.stdout.buffer) -> None:
     """Write the organization graph to a file as GraphML.
 
     By default write to standard output.

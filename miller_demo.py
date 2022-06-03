@@ -1,5 +1,5 @@
 from org_graph import read_graphml, get_root
-from typing import Callable, List
+from typing import Any, Callable, List, Optional
 import tkinter as tk
 from tkinter import ttk
 
@@ -10,11 +10,20 @@ def main() -> None:
     def get_children(parent: str) -> List[str]:
         return list(org_tree[parent])
 
-    app = MillerColumns(root, get_children)
+    app = MillerApp(root, get_children)
     app.mainloop()
 
 
-class MillerColumns(tk.Tk):
+class MillerColumn(ttk.Treeview):
+
+    ancestor_of_visible_children: Optional[str]
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.ancestor_of_visible_children = None
+
+
+class MillerApp(tk.Tk):
 
     def __init__(
         self,
@@ -38,10 +47,10 @@ class MillerColumns(tk.Tk):
         self.bind_all("<Alt-KeyPress-F4>", self.on_quit)
         self.bind_all("<Alt-KeyPress-q>", self.on_quit)
     
-    def place_miller(self, index: int, name: str) -> ttk.Treeview:
+    def place_miller(self, index: int, name: str) -> MillerColumn:
         columns = ["Name"]
 
-        miller = ttk.Treeview(
+        miller = MillerColumn(
             self,
             columns=columns,
             displaycolumns="#all",
@@ -59,8 +68,18 @@ class MillerColumns(tk.Tk):
         
         return miller
 
-    def on_click_miller(self, event: "tk.Event[ttk.Treeview]") -> None:
+    def on_click_miller(self, event: "tk.Event[MillerColumn]") -> None:
         clicked_miller = event.widget
+        selection = clicked_miller.selection()
+
+        if not selection:
+            return
+
+        selected_item = selection[0]
+
+        if selected_item == clicked_miller.ancestor_of_visible_children:
+            return
+
         grid_info = clicked_miller.grid_info()
         last_index = self.miller_count() - 1
         clicked_index = grid_info["column"]
@@ -68,21 +87,20 @@ class MillerColumns(tk.Tk):
         for i in range(last_index, clicked_index, -1):
             self.grid_slaves(row=0, column=i)[0].destroy()
 
-        selected = clicked_miller.selection()
-        if selected:
-            parent = selected[0]
-            children = self.get_children(parent)
-            next_miller = self.append_miller(parent)
-            self.fill_miller(next_miller, children)
+        children = self.get_children(selected_item)
+        next_miller = self.append_miller(selected_item)
+        self.fill_miller(next_miller, children)
 
-    def append_miller(self, name: str) -> ttk.Treeview:
+        clicked_miller.ancestor_of_visible_children = selected_item
+
+    def append_miller(self, name: str) -> MillerColumn:
         next_index = self.miller_count()
         return self.place_miller(next_index, name)
 
     def miller_count(self) -> int:
         return len(self.grid_slaves())
     
-    def fill_miller(self, miller: ttk.Treeview, items: List[str]) -> None:
+    def fill_miller(self, miller: MillerColumn, items: List[str]) -> None:
         for item in items:
             miller.insert(parent="", index="end", iid=item, text=item, values=(item,))
 

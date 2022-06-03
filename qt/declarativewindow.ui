@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+
+The tutorial says "you will need to use Qt Creator to design and modify your
+interface (UI file)". The linked Qt Designer documentation didn't make it easy
+to see how to install and run that application. Tech With Tim's
+[Qt Designer tutorial](https://www.youtube.com/watch?v=FVpho_UiDAY) shows how to
+install it via the `pyqt5-tools` Python package. Poetry failed to install it
+with a ridiculous SolverProblemError:
+
+```
+$ poetry add pyqt5-tools
+Using version ^5.15.4 for pyqt5-tools
+
+Updating dependencies
+Resolving dependencies... (4.7s)
+
+  SolverProblemError
+
+  Because pyqt5-tools (5.15.4.3.0.3) depends on both pyqt5-plugins (<empty>) and pyqt5-plugins (<empty>), pyqt5-tools is forbidden.
+  And because no versions of pyqt5-tools match >=5.15.4,<5.15.4.3.0.3 || >5.15.4.3.0.3,<5.15.4.3.1 || >5.15.4.3.1,<5.15.4.3.2 || >5.15.4.3.2,<6.0.0, pyqt5-tools is forbidden.
+  Because pyqt5-tools (5.15.4.3.1) depends on both pyqt5-plugins (<empty>) and pyqt5-plugins (<empty>), pyqt5-tools is forbidden.
+  Thus, pyqt5-tools is forbidden.
+  Because pyqt5-tools (5.15.4.3.2) depends on both pyqt5-plugins (<empty>) and pyqt5-plugins (<empty>), pyqt5-tools is forbidden.
+  Thus, pyqt5-tools is forbidden.
+  So, because orgtreepubsub depends on pyqt5-tools (^5.15.4), version solving failed.
+```
+
+So I gave up on Qt Designer. I typed out the full interface text given in the
+PySide2 tutorial.
+
+Generate the code for this using a command:
+
+```bash
+poetry run pyside2-uic qt/declarativewindow.ui > qt/generatedwindow.py
+```
+
+-->
+
+<ui version="4.0">
+  <class>MainWindow</class>
+  <widget class="QMainWindow" name="MainWindow">
+    <property name="geometry">
+      <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>400</width>
+        <height>300</height>
+      </rect>
+    </property>
+    <property name="windowTitle">
+      <string>MainWindow</string>
+    </property>
+    <widget class="QWidget" name="centralWidget">
+      <widget class="QPushButton" name="pushButton">
+        <property name="geometry">
+          <rect>
+            <x>110</x>
+            <y>80</y>
+            <width>201</width>
+            <height>81</height>
+          </rect>
+        </property>
+        <property name="text">
+          <string>PushButton</string>
+        </property>
+      </widget>
+    </widget>
+    <widget class="QMenuBar" name="menuBar">
+      <property name="geometry">
+        <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>400</width>
+          <height>20</height>
+        </rect>
+      </property>
+    </widget>
+    <widget class="QToolBar" name="mainToolBar">
+      <attribute name="toolBarArea">
+        <enum>TopToolBarArea</enum>
+      </attribute>
+      <attribute name="toolBarBreak">
+        <bool>false</bool>
+      </attribute>
+    </widget>
+    <widget class="QStatusBar" name="statusBar"/>
+  </widget>
+  <layoutdefault spacing="6" margin="11"/>
+  <resources/>
+  <connections/>
+</ui>

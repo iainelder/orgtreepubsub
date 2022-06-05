@@ -1,6 +1,6 @@
 from copy import deepcopy
 import sys
-from typing import BinaryIO, Union, cast
+from typing import BinaryIO, Iterator, Union, cast
 from pubsub import pub  # type: ignore[import]
 import networkx as nx  # type: ignore[import]
 from boto3 import Session
@@ -52,6 +52,16 @@ def get_root(graph: nx.DiGraph) -> str:
         if attrs["type"] == "root":
             return cast(str, id)
     raise AssertionError("graph has no root node")
+
+
+def descendant_accounts(graph: nx.DiGraph, source: str) -> Iterator[str]:
+    for desc in nx.descendants(graph, source):
+        if graph.nodes[desc]["type"] == "account":
+            yield desc
+
+
+def count_descendant_accounts(graph: nx.DiGraph, source: str) -> int:
+    return sum(1 for _ in descendant_accounts(graph, source))
 
 
 def read_graphml(file: File) -> nx.DiGraph:

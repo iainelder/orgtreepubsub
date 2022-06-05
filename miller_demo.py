@@ -64,17 +64,21 @@ class MillerController:
         self.show_path_in_view()
 
     def show_path_in_view(self) -> None:
+        self.view.clear_all_columns()
         nav_iterator = self.model.iter_navegable_nodes()
         for depth, parent, selected_child, children in nav_iterator:
             self.view.show_column(depth)
-            self.view.set_column_name(depth, parent if parent is not None else "")
             self.view.fill_column(depth, children)
+
+            if parent is None:
+                self.view.set_column_name(depth, "")
+            else:
+                self.view.set_column_name(depth, parent)
 
             if selected_child is None:
                 self.view.clear_column_selection(depth)
             else:
                 self.view.set_column_selection(depth, selected_child)
-
 
 class MillerColumn(ttk.Treeview):
 
@@ -88,10 +92,13 @@ class MillerColumn(ttk.Treeview):
 
         self.bind("<ButtonRelease>", parent.on_click_column)
 
-    def fill(self, items: List[str]) -> None:
+    def clear(self) -> None:
+        self.heading("Name", text="")
         for c in self.get_children():
             self.delete(c)
 
+    def fill(self, items: List[str]) -> None:
+        self.clear()
         for item in items:
             self.insert(parent="", index="end", iid=item, text=item, values=(item,))
 
@@ -156,6 +163,10 @@ class MillerView(ttk.Frame):
         if selection is not None:
             self.controller.update_selection(depth, selection)
 
+    def clear_all_columns(self) -> None:
+        for column in self.columns:
+            column.clear()
+
 
 class MillerApp(tk.Tk):
 
@@ -168,7 +179,7 @@ class MillerApp(tk.Tk):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.view = MillerView(self, 5)
+        self.view = MillerView(self, 6)
         self.view.grid(column=0, row=0, sticky="NSEW")
 
         org_tree = read_graphml("/home/isme/tmp/int_org.graphml")

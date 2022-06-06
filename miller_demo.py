@@ -1,13 +1,24 @@
+from collections import namedtuple
 from itertools import chain
-from org_graph import count_descendant_accounts, read_graphml, get_root
-from typing import Iterator, List, Optional, Tuple
+from org_graph import (
+    count_descendant_accounts,
+    iter_descendant_accounts,
+    read_graphml,
+    get_root,
+)
+from typing import Iterable, List, Optional, Tuple
 import tkinter as tk
 import networkx as nx  # type: ignore[import]
 from tkinter import ttk
 
 
+AccountRow = namedtuple(
+    "AccountRow", ["Id", "Name", "Email", "Arn", "Status", "JoinedMethod"]
+)
+
+
 def main() -> None:
-    app = MillerApp()
+    app = BrowserApp()
     app.mainloop()
 
 
@@ -45,9 +56,9 @@ class PathSelection:
 
         self._components[depth:] = [node]
 
-    NavIterator = Iterator[Tuple[int, Optional[str], Optional[str], List[str]]]
+    NavIterable = Iterable[Tuple[int, Optional[str], Optional[str], List[str]]]
 
-    def iter_navegable_nodes(self) -> NavIterator:
+    def iter_navegable_nodes(self) -> NavIterable:
         selected_ancestors = chain([None], self._components)
         selected_descendants = chain(self._components, [None])
         nav_iterator = enumerate(zip(selected_ancestors, selected_descendants))
@@ -57,21 +68,29 @@ class PathSelection:
             yield depth, parent, selected_child, children
 
 
-class MillerController:
+class BrowserController:
 
-    def __init__(self, path: PathSelection, org: nx.DiGraph, view: "MillerView"):
+    def __init__(
+        self,
+        path: PathSelection,
+        org: nx.DiGraph,
+        miller_view: "MillerView",
+        account_table_view: "AccountTableView"
+    ):
         self.org = org
         self.path = path
-        self.view = view
+        self.miller_view = miller_view
+        self.account_table_view = account_table_view
 
     def update_selection(self, depth: int, node: str) -> None:
         self.path.update_selection(depth, node)
         self.show_path_in_view()
+        self.show_descendant_accounts_in_table()
 
     def show_path_in_view(self) -> None:
-        self.view.clear_all_columns()
+        self.miller_view.clear_all_columns()
         # TODO: Remove this if it doesn't look good.
-        # self.view.hide_all_columns()
+        # self.miller_view.hide_all_columns()
         nav_iterator = self.path.iter_navegable_nodes()
         for depth, parent, selected_child, children in nav_iterator:
 
@@ -89,8 +108,8 @@ class MillerController:
             descendants_per_child = [format_count(p) for p in children]
             names_per_child = [self.org.nodes[p]["Name"] for p in children]
 
-            self.view.show_column(depth)
-            self.view.fill_column(
+            self.miller_view.show_column(depth)
+            self.miller_view.fill_column(
                 depth,
                 children,
                 names_per_child,
@@ -100,14 +119,24 @@ class MillerController:
             # TODO: Remove this definitely if I stick with the account count
             # column. 
             # if parent is None:
-            #     self.view.set_column_name(depth, "")
+            #     self.miller_view.set_column_name(depth, "")
             # else:
-            #     self.view.set_column_name(depth, parent)
+            #     self.miller_view.set_column_name(depth, parent)
 
             if selected_child is None:
-                self.view.clear_column_selection(depth)
+                self.miller_view.clear_column_selection(depth)
             else:
-                self.view.set_column_selection(depth, selected_child)
+                self.miller_view.set_column_selection(depth, selected_child)
+    
+    def show_descendant_accounts_in_table(self) -> None:
+        account_ids = iter_descendant_accounts(self.org, self.path.components[-1])
+        account_datas = (self.org.nodes[id] for id in account_ids)
+        rows = (
+            AccountRow(**{k: v for k, v in data.items() if k in AccountRow._fields})
+            for data in account_datas
+        
+        )
+        self.account_table_view.fill(rows)
 
 
 class MillerColumn(ttk.Treeview):
@@ -157,7 +186,7 @@ class MillerColumn(ttk.Treeview):
 
 class MillerView(ttk.Frame):
 
-    controller: MillerController
+    controller: BrowserController
     columns: List[MillerColumn]
 
     def __init__(self, parent: tk.Misc, max_depth: int):
@@ -172,7 +201,7 @@ class MillerView(ttk.Frame):
             self.show_column(i)
             self.grid_columnconfigure(i, weight=1)
 
-    def set_controller(self, controller: MillerController) -> None:
+    def set_controller(self, controller: BrowserController) -> None:
         self.controller = controller
 
     def add_column(self) -> None:
@@ -224,7 +253,49 @@ class MillerView(ttk.Frame):
             self.hide_column(index)
 
 
-class MillerApp(tk.Tk):
+class AccountTableView(ttk.Frame):
+    
+    controller: BrowserController
+    table: ttk.Treeview
+
+    def __init__(self, parent: tk.Misc) -> None:
+        super().__init__(parent)
+
+        columns = AccountRow._fields
+        self.table = ttk.Treeview(
+            self,
+            columns=columns,
+            displaycolumns="#all",
+            show=["headings"],
+        )
+
+        for c in AccountRow._fields:
+            self.table.heading(c, text=c)
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.table.grid(column=0, row=0, sticky="NSEW")
+    
+    def set_controller(self, controller: BrowserController) -> None:
+        self.controller = controller
+
+    def clear(self) -> None:
+        for r in self.table.get_children():
+            self.table.delete(r)
+
+    def fill(self, accounts: Iterable[AccountRow]) -> None:
+        self.clear()
+        for account in accounts:
+            self.table.insert(
+                parent="",
+                index="end",
+                iid=account.Id,
+                text=account.Id,
+                values=account,
+            )
+
+
+class BrowserApp(tk.Tk):
 
     def __init__(self) -> None:
         super().__init__()
@@ -232,18 +303,28 @@ class MillerApp(tk.Tk):
 
         self.grid()
 
-        self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.view = MillerView(self, 7)
-        self.view.grid(column=0, row=0, sticky="NSEW")
+        self.grid_rowconfigure(0, weight=1)
+        self.miller_view = MillerView(self, 7)
+        self.miller_view.grid(column=0, row=0, sticky="NSEW")
+
+        self.grid_rowconfigure(1, weight=1)
+        self.table_view = AccountTableView(self)
+        self.table_view.grid(column=0, row=1, sticky="NSEW")
 
         self.org_tree = read_graphml("/home/isme/tmp/int_org.graphml")
         self.path = PathSelection(org=self.org_tree)
 
-        self.controller = MillerController(self.path, self.org_tree, self.view)
-        self.view.set_controller(self.controller)
+        self.controller = BrowserController(
+            self.path, self.org_tree, self.miller_view, self.table_view
+        )
+
+        self.miller_view.set_controller(self.controller)
+        self.table_view.set_controller(self.controller)
+
         self.controller.show_path_in_view()
+        self.controller.show_descendant_accounts_in_table()
 
     def bind_quit_events(self) -> None:
         self.bind_all("<Alt-KeyPress-F4>", self.on_quit)

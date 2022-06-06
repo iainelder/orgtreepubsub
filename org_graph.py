@@ -54,14 +54,14 @@ def get_root(graph: nx.DiGraph) -> str:
     raise AssertionError("graph has no root node")
 
 
-def descendant_accounts(graph: nx.DiGraph, source: str) -> Iterator[str]:
+def iter_descendant_accounts(graph: nx.DiGraph, source: str) -> Iterator[str]:
     for desc in nx.descendants(graph, source):
         if graph.nodes[desc]["type"] == "account":
             yield desc
 
 
 def count_descendant_accounts(graph: nx.DiGraph, source: str) -> int:
-    return sum(1 for _ in descendant_accounts(graph, source))
+    return sum(1 for _ in iter_descendant_accounts(graph, source))
 
 
 def read_graphml(file: File) -> nx.DiGraph:

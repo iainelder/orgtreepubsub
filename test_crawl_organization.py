@@ -115,4 +115,4 @@ def test_when_org_has_empty_orgunit_crawl_publishes_orgunit_as_parent(mock_sessi
     
     crawl_organization(mock_session)
 
-    spy.assert_called_with(parent=orgunit)
+    spy.assert_any_call(parent=orgunit)

@@ -3,6 +3,7 @@ from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, Future, wait
 from typing import Any, Callable, Iterable, Optional, Set
 from boto3 import Session
+from botocore.exceptions import ClientError
 from pubsub import pub  # type: ignore[import]
 from pubsub.core import Topic  # type: ignore[import]
 
@@ -10,10 +11,6 @@ from type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource, OrgCli
 
 
 Task = Callable[..., None]
-
-
-def spy(topic: Topic = pub.AUTO_TOPIC, **data: Any) -> None:
-    logging.debug(f"{topic.getName()} {data}")
 
 
 def crawl_organization(
@@ -47,8 +44,8 @@ def crawl_organization(
             for future in done:
                 try:
                     future.result()
-                except Exception as exc:
-                    print(repr(exc))
+                except ClientError:
+                    raise
 
             futures -= done
 

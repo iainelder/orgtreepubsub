@@ -1,11 +1,10 @@
-import logging
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, Future, wait
-from typing import Any, Callable, Iterable, Optional, Set
+from typing import Callable, Iterable, Optional, Set
+
 from boto3 import Session
 from botocore.exceptions import ClientError
 from pubsub import pub  # type: ignore[import]
-from pubsub.core import Topic  # type: ignore[import]
 
 from type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource, OrgClient
 

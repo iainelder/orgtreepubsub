@@ -163,3 +163,67 @@ def test_when_orgunit_parents_orgunit_crawl_publishes_child_orgunit_as_parent(mo
     crawl_organization(mock_session)
 
     spy.assert_any_call(parent=child_orgunit)
+
+
+def test_when_root_has_tag_crawl_publishes_tag(mock_session: Session) -> None:
+    client = mock_session.client("organizations")
+    client.create_organization(FeatureSet="ALL")
+    root = client.list_roots()["Roots"][0]
+    tag = {"Key": "RootTag", "Value": "RootValue"}
+    client.tag_resource(ResourceId=root["Id"], Tags=[tag])
+
+    spy = Mock()
+    pub.subscribe(spy, "tag")
+
+    crawl_organization(mock_session)
+
+    spy.assert_called_once_with(resource=root, tag=tag)
+
+
+def test_when_orgunit_has_tag_crawl_publishes_tag(mock_session: Session) -> None:
+    client = mock_session.client("organizations")
+    client.create_organization(FeatureSet="ALL")
+    root = client.list_roots()["Roots"][0]
+    orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    tag = {"Key": "OrgunitTag", "Value": "OrgunitValue"}
+    client.tag_resource(ResourceId=orgunit["Id"], Tags=[tag])
+
+    spy = Mock()
+    pub.subscribe(spy, "tag")
+
+    crawl_organization(mock_session)
+
+    spy.assert_called_once_with(resource=orgunit, tag=tag)
+
+
+def test_when_account_has_tag_crawl_publishes_tag(mock_session: Session) -> None:
+    client = mock_session.client("organizations")
+    client.create_organization(FeatureSet="ALL")
+    request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
+    account = client.describe_account(AccountId=request["AccountId"])["Account"]
+    tag = {"Key": "AccountTag", "Value": "AccountValue"}
+    client.tag_resource(ResourceId=account["Id"], Tags=[tag])
+
+    spy = Mock()
+    pub.subscribe(spy, "tag")
+
+    crawl_organization(mock_session)
+
+    spy.assert_called_once_with(resource=account, tag=tag)
+
+
+def test_when_resource_has_two_tags_crawl_publishes_twice(mock_session: Session) -> None:
+    client = mock_session.client("organizations")
+    client.create_organization(FeatureSet="ALL")
+    root = client.list_roots()["Roots"][0]
+    tag1 = {"Key": "RootTag1", "Value": "RootValue1"}
+    tag2 = {"Key": "RootTag2", "Value": "RootValue2"}
+    client.tag_resource(ResourceId=root["Id"], Tags=[tag1, tag2])
+
+    spy = Mock()
+    pub.subscribe(spy, "tag")
+
+    crawl_organization(mock_session)
+
+    spy.assert_any_call(resource=root, tag=tag1)
+    spy.assert_any_call(resource=root, tag=tag2)

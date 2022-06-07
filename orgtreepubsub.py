@@ -3,10 +3,13 @@ from concurrent.futures import ThreadPoolExecutor, Future, wait
 from typing import Callable, Iterable, Optional, Set
 
 from boto3 import Session
-from botocore.exceptions import ClientError
 from pubsub import pub  # type: ignore[import]
 
 from type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource, OrgClient
+import topic_spec
+
+
+pub.addTopicDefnProvider(topic_spec, pub.TOPIC_TREE_FROM_CLASS)
 
 
 Task = Callable[..., None]
@@ -41,10 +44,7 @@ def crawl_organization(
                 futures.add(executor.submit(queue.get()))
 
             for future in done:
-                try:
-                    future.result()
-                except ClientError:
-                    raise
+                future.result()
 
             futures -= done
 

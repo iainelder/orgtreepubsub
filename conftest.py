@@ -1,7 +1,7 @@
 import pytest
 from typing import Iterator
 from boto3 import Session
-from moto import mock_sts, mock_organizations
+from moto import mock_sts, mock_organizations  # type: ignore[import]
 
 
 @pytest.fixture()

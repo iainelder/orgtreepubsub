@@ -1,5 +1,6 @@
-from pubsub import pub
+from pubsub import pub  # type: ignore[import]
 from boto3 import Session
+from mypy_boto3_organizations.type_defs import TagTypeDef
 from botocore.exceptions import ClientError
 from orgtreepubsub import crawl_organization
 from pytest import raises
@@ -169,7 +170,7 @@ def test_when_root_has_tag_crawl_publishes_tag(mock_session: Session) -> None:
     client = mock_session.client("organizations")
     client.create_organization(FeatureSet="ALL")
     root = client.list_roots()["Roots"][0]
-    tag = {"Key": "RootTag", "Value": "RootValue"}
+    tag: TagTypeDef = {"Key": "RootTag", "Value": "RootValue"}
     client.tag_resource(ResourceId=root["Id"], Tags=[tag])
 
     spy = Mock()
@@ -185,7 +186,7 @@ def test_when_orgunit_has_tag_crawl_publishes_tag(mock_session: Session) -> None
     client.create_organization(FeatureSet="ALL")
     root = client.list_roots()["Roots"][0]
     orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
-    tag = {"Key": "OrgunitTag", "Value": "OrgunitValue"}
+    tag: TagTypeDef = {"Key": "OrgunitTag", "Value": "OrgunitValue"}
     client.tag_resource(ResourceId=orgunit["Id"], Tags=[tag])
 
     spy = Mock()
@@ -201,7 +202,7 @@ def test_when_account_has_tag_crawl_publishes_tag(mock_session: Session) -> None
     client.create_organization(FeatureSet="ALL")
     request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
     account = client.describe_account(AccountId=request["AccountId"])["Account"]
-    tag = {"Key": "AccountTag", "Value": "AccountValue"}
+    tag: TagTypeDef = {"Key": "AccountTag", "Value": "AccountValue"}
     client.tag_resource(ResourceId=account["Id"], Tags=[tag])
 
     spy = Mock()
@@ -216,8 +217,8 @@ def test_when_resource_has_two_tags_crawl_publishes_twice(mock_session: Session)
     client = mock_session.client("organizations")
     client.create_organization(FeatureSet="ALL")
     root = client.list_roots()["Roots"][0]
-    tag1 = {"Key": "RootTag1", "Value": "RootValue1"}
-    tag2 = {"Key": "RootTag2", "Value": "RootValue2"}
+    tag1: TagTypeDef = {"Key": "RootTag1", "Value": "RootValue1"}
+    tag2: TagTypeDef = {"Key": "RootTag2", "Value": "RootValue2"}
     client.tag_resource(ResourceId=root["Id"], Tags=[tag1, tag2])
 
     spy = Mock()

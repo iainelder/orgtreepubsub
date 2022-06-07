@@ -221,7 +221,7 @@ class MillerView(ttk.Frame):
         depth: int,
         children: List[str],
         names: List[str],
-        descendants_per_child: List[int]
+        descendants_per_child: List[str]
     ) -> None:
         self.columns[depth].fill(children, names, descendants_per_child)
     

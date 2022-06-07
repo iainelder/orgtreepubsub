@@ -19,3 +19,13 @@ Parent = Union[Root, OrgUnit]
 Resource = Union[Account, OrgUnit, Root]
 
 OrgClient = OrganizationsClient
+
+
+class OrganizationError(Exception):
+    """Main exception class."""
+    pass
+
+
+class OrganizationDoesNotExistError(OrganizationError):
+    """Raised when the host account is not in an organization."""
+    pass

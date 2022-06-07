@@ -1,16 +1,18 @@
+from typing import Any
 from pubsub import pub  # type: ignore[import]
 from boto3 import Session
 from mypy_boto3_organizations.type_defs import TagTypeDef
-from botocore.exceptions import ClientError
+from type_defs import OrganizationError, OrganizationDoesNotExistError
 from orgtreepubsub import crawl_organization
 from pytest import raises
 from unittest.mock import Mock
+from botocore.exceptions import ClientError
+from pytest_mock import MockerFixture
 
 
 def test_when_org_does_not_exist_crawl_raises_error(mock_session: Session) -> None:
-    with raises(ClientError) as err:
+    with raises(OrganizationDoesNotExistError):
         crawl_organization(mock_session)
-    assert err.value.response['Error']['Code'] == "AWSOrganizationsNotInUseException"
 
 
 def test_when_org_is_new_crawl_publishes_organization(mock_session: Session) -> None:
@@ -228,3 +230,24 @@ def test_when_resource_has_two_tags_crawl_publishes_twice(mock_session: Session)
 
     spy.assert_any_call(resource=root, tag=tag1)
     spy.assert_any_call(resource=root, tag=tag2)
+
+
+def test_crawl_causes_organization_error_on_client_error(
+    mock_session: Session, mocker: MockerFixture
+) -> None:
+    client = mock_session.client("organizations")
+    client.create_organization(FeatureSet="ALL")
+
+    def list_roots(*args: Any, **kwargs: Any) -> None:
+        raise ClientError(
+            {"Error": {"Message": "broken!", "Code": "OhNo"}}, "list_roots"
+        )
+
+    mocker.patch(
+        "moto.organizations.models.OrganizationsBackend.list_roots",
+        list_roots,
+    )
+
+    with raises(OrganizationError) as exc:
+        crawl_organization(mock_session)
+    assert type(exc.value.__cause__) == ClientError

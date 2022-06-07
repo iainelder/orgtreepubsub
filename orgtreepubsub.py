@@ -3,9 +3,11 @@ from concurrent.futures import ThreadPoolExecutor, Future, wait
 from typing import Callable, Iterable, Optional, Set
 
 from boto3 import Session
+from botocore.exceptions import ClientError
 from pubsub import pub  # type: ignore[import]
 
 from type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource, OrgClient
+from type_defs import OrganizationError, OrganizationDoesNotExistError
 import topic_spec
 
 
@@ -44,9 +46,23 @@ def crawl_organization(
                 futures.add(executor.submit(queue.get()))
 
             for future in done:
-                future.result()
+                raise_if_result_is_error_else_continue(future)
 
             futures -= done
+
+
+def raise_if_result_is_error_else_continue(future: "Future[None]") -> None:
+    try:
+        future.result()
+    except ClientError as error:
+        if organization_does_not_exist(error):
+            raise OrganizationDoesNotExistError() from error
+        else:
+            raise OrganizationError() from error
+
+
+def organization_does_not_exist(error: ClientError) -> bool:
+    return error.response["Error"]["Code"] == "AWSOrganizationsNotInUseException"
 
 
 def publish_organization(client: OrgClient, queue: "Queue[Task]") -> None:

@@ -116,3 +116,50 @@ def test_when_org_has_empty_orgunit_crawl_publishes_orgunit_as_parent(mock_sessi
     crawl_organization(mock_session)
 
     spy.assert_any_call(parent=orgunit)
+
+
+def test_when_orgunit_parents_account_crawl_publishes_account_as_resource(mock_session: Session) -> None:
+    client = mock_session.client("organizations")
+    client.create_organization(FeatureSet="ALL")
+    root = client.list_roots()["Roots"][0]
+    orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    child_request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
+    child_account = client.describe_account(AccountId=child_request["AccountId"])["Account"]
+    client.move_account(AccountId=child_account["Id"], SourceParentId=root["Id"], DestinationParentId=orgunit["Id"])
+
+    spy = Mock()
+    pub.subscribe(spy, "account")
+
+    crawl_organization(mock_session)
+
+    spy.assert_any_call(parent=orgunit, resource=child_account)
+
+
+def test_when_orgunit_parents_orgunit_crawl_publishes_child_orgunit_as_resource(mock_session: Session) -> None:
+    client = mock_session.client("organizations")
+    client.create_organization(FeatureSet="ALL")
+    root = client.list_roots()["Roots"][0]
+    parent_orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    child_orgunit = client.create_organizational_unit(ParentId=parent_orgunit["Id"], Name="OU2")["OrganizationalUnit"]
+
+    spy = Mock()
+    pub.subscribe(spy, "organizational_unit")
+
+    crawl_organization(mock_session)
+
+    spy.assert_any_call(parent=parent_orgunit, resource=child_orgunit)
+
+
+def test_when_orgunit_parents_orgunit_crawl_publishes_child_orgunit_as_parent(mock_session: Session) -> None:
+    client = mock_session.client("organizations")
+    client.create_organization(FeatureSet="ALL")
+    root = client.list_roots()["Roots"][0]
+    parent_orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    child_orgunit = client.create_organizational_unit(ParentId=parent_orgunit["Id"], Name="OU2")["OrganizationalUnit"]
+
+    spy = Mock()
+    pub.subscribe(spy, "parent")
+
+    crawl_organization(mock_session)
+
+    spy.assert_any_call(parent=child_orgunit)

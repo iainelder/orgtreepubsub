@@ -21,13 +21,13 @@ class OrgGraph:
         # The graph data is a copy of the description dict with an extra type key
         # for the resource type.
         data: Dict[str, Any] = self._graph.nodes[self._management_account_id]
-        account: Account = {k: v for k, v in data.items() if k != "type"}
+        account = cast(Account, {k: v for k, v in data.items() if k != "type"})
         return account
 
     @property
     def root(self) -> Root:
         data: Dict[str, Any] = self._graph.nodes[self._root_id]
-        root: Root = {k: v for k, v in data.items() if k != "type"}
+        root = cast(Root, {k: v for k, v in data.items() if k != "type"})
         return root
 
     def _set_org_metadata(self, org: Org) -> None:

@@ -1,6 +1,6 @@
 from copy import deepcopy
 import sys
-from typing import BinaryIO, Iterator, Union, cast
+from typing import Any, BinaryIO, Dict, Iterator, Union, cast
 from pubsub import pub  # type: ignore[import]
 import networkx as nx  # type: ignore[import]
 from boto3 import Session
@@ -8,10 +8,63 @@ from orgtreepubsub import crawl_organization
 
 from type_defs import Account, Org, OrgUnit, Root, Parent
 
+class OrgGraph:
+
+    management_account_id: str
+
+    def __init__(self, graph: nx.DiGraph) -> None:
+        """Don't use this initializer. Instead use `snapshot_org`."""
+        self._graph = graph
+
+    @property
+    def management_account(self) -> Account:
+        # The graph data is a copy of the description dict with an extra type key
+        # for the resource type.
+        data: Dict[str, Any] = self._graph.nodes[self._management_account_id]
+        account: Account = {k: v for k, v in data.items() if k != "type"}
+        return account
+
+    @property
+    def root(self) -> Root:
+        data: Dict[str, Any] = self._graph.nodes[self._root_id]
+        root: Root = {k: v for k, v in data.items() if k != "type"}
+        return root
+
+    def _set_org_metadata(self, org: Org) -> None:
+        self._management_account_id = org["MasterAccountId"]
+        self.organization_id = org["Id"]
+    
+    def _set_root_metadata(self, org: Org, resource: Root) -> None:
+        self._root_id = resource["Id"]
+
+
+def snapshot_org(session: Session) -> OrgGraph:
+    internal_graph = nx.DiGraph()
+    org_model = OrgGraph(internal_graph)
+
+    pub.subscribe(org_model._set_org_metadata, "organization")
+    pub.subscribe(add_root, "root", graph=internal_graph)
+    pub.subscribe(org_model._set_root_metadata, "root")
+    pub.subscribe(add_organizational_unit, "organizational_unit", graph=internal_graph)
+    pub.subscribe(add_account, "account", graph=internal_graph)
+
+    crawl_organization(session)
+
+    return org_model
+
+
+# ---
+# Older impelementation below.
+# ---
+
+
 # NetworkX accepts a file handle for I/O. This is useful for writing to stdout.
 # It also accepts a str path to a file and manages the file handle itself. This
 # is convenient for reading.
 File = Union[BinaryIO, str]
+
+
+
 
 def get_org_graph(session: Session) -> nx.Graph:
 
@@ -50,6 +103,14 @@ def get_root(graph: nx.DiGraph) -> str:
     """Return the ID of the organization Root resource"""
     for id, attrs in graph.nodes.items():
         if attrs["type"] == "root":
+            return cast(str, id)
+    raise AssertionError("graph has no root node")
+
+
+def get_org_metadata(graph: nx.DiGraph) -> str:
+    """Return the ID of the organization Root resource"""
+    for id, attrs in graph.nodes.items():
+        if attrs["type"] == "organization":
             return cast(str, id)
     raise AssertionError("graph has no root node")
 

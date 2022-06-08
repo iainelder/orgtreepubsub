@@ -198,6 +198,12 @@ channel with tutorials for Cytoscape.
 similar to NetworkX. It also has built-in
 [drawing functions](https://graph-tool.skewed.de/static/doc/draw.html).
 
+graph-tool promises more complete support for
+[I/O using GraphML](https://graph-tool.skewed.de/static/doc/quickstart.html#graph-i-o):
+"an exact bit-for-bit representation of all supported Property maps types",
+which includes the Python `object` type. But the module is not pip-installable,
+so I don't want to explore it just now because it would complicate the set up.
+
 ## Inspiration
 
 What do I want to draw?
@@ -422,3 +428,8 @@ by
 * Wax (a high-level wrapper for wxPython)
 * PySide2 (more bidings for QT, by the Qt developers)
 * PyGUI
+
+Another option from Github:
+
+* [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter), A modern and
+  customizable python UI-library based on Tkinter.

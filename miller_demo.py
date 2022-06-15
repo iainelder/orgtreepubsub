@@ -295,6 +295,45 @@ class AccountTableView(ttk.Frame):
             )
 
 
+class ResourceDetailView(ttk.Frame):
+
+    resource_name: ttk.Label
+    tag_table: ttk.Treeview
+
+    def __init__(self, parent: tk.Misc) -> None:
+        super().__init__(parent)
+
+        self.resource_name = ttk.Label(self, text="Account 111111111111")
+
+        columns = ["Key", "Value"]
+        self.tag_table = ttk.Treeview(
+            self,
+            columns=columns,
+            displaycolumns="#all",
+            show=["headings"],
+        )
+
+        for c in columns:
+            self.tag_table.heading(c, text=c)
+        
+        self.tag_table.insert(
+            parent="", index="end", iid="Owner", values=("Owner", "Marge Simpson")
+        )
+        self.tag_table.insert(
+            parent="", index="end", iid="Project", values=("Project", "The Simpsons"),
+        )
+        self.tag_table.insert(
+            parent="", index="end", iid="Environment", values=("Environment", "Springfield"),
+        )
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        self.resource_name.grid(column=0, row=0, sticky="NSEW")
+        self.tag_table.grid(column=0, row=1, sticky="NSEW")
+
+
 class BrowserApp(tk.Tk):
 
     def __init__(self) -> None:
@@ -303,8 +342,6 @@ class BrowserApp(tk.Tk):
 
         self.grid()
 
-        self.grid_columnconfigure(0, weight=1)
-
         self.grid_rowconfigure(0, weight=1)
         self.miller_view = MillerView(self, 7)
         self.miller_view.grid(column=0, row=0, sticky="NSEW")
@@ -312,6 +349,11 @@ class BrowserApp(tk.Tk):
         self.grid_rowconfigure(1, weight=1)
         self.table_view = AccountTableView(self)
         self.table_view.grid(column=0, row=1, sticky="NSEW")
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1, minsize=300)
+        self.tag_table = ResourceDetailView(self)
+        self.tag_table.grid(column=1, row=0, rowspan=2, sticky="NSEW")
 
         self.org_tree = read_graphml("/home/isme/tmp/int_org.graphml")
         self.path = PathSelection(org=self.org_tree)

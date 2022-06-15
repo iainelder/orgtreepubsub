@@ -9,7 +9,7 @@ def test_when_org_does_not_exist_raises_error(mock_session: Session) -> None:
         snapshot_org(mock_session)
 
 
-def test_new_org_has_mgmt_account(mock_session: Session) -> None:
+def test_new_org_has_mgmt_account_property(mock_session: Session) -> None:
     client = mock_session.client("organizations")
     client.create_organization(FeatureSet="ALL")
     org_desc = client.describe_organization()["Organization"]
@@ -19,7 +19,7 @@ def test_new_org_has_mgmt_account(mock_session: Session) -> None:
     assert graph.management_account == mgmt_desc
 
 
-def test_new_org_has_organization_id(mock_session: Session) -> None:
+def test_new_org_has_organization_id_property(mock_session: Session) -> None:
     client = mock_session.client("organizations")
     client.create_organization(FeatureSet="ALL")
     org_desc = client.describe_organization()["Organization"]
@@ -28,10 +28,20 @@ def test_new_org_has_organization_id(mock_session: Session) -> None:
     assert graph.organization_id == org_desc["Id"]
 
 
-def test_new_org_has_root(mock_session: Session) -> None:
+def test_new_org_has_root_property(mock_session: Session) -> None:
     client = mock_session.client("organizations")
     client.create_organization(FeatureSet="ALL")
     root_desc = client.list_roots()["Roots"][0]
 
     graph = snapshot_org(mock_session)
     assert graph.root == root_desc
+
+
+def test_new_org_has_mgmt_account_via_ac(mock_session: Session) -> None:
+    client = mock_session.client("organizations")
+    client.create_organization(FeatureSet="ALL")
+    org_desc = client.describe_organization()["Organization"]
+    mgmt_desc = client.describe_account(AccountId=org_desc["MasterAccountId"])["Account"]
+
+    graph = snapshot_org(mock_session)
+    assert graph.ac(org_desc["MasterAccountId"]) == mgmt_desc

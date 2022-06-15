@@ -6,7 +6,7 @@ import networkx as nx  # type: ignore[import]
 from boto3 import Session
 from orgtreepubsub import crawl_organization
 
-from type_defs import Account, Org, OrgUnit, Root, Parent
+from type_defs import Account, Org, OrgUnit, Root, Parent, Resource, Tag
 
 class OrgGraph:
 
@@ -33,9 +33,16 @@ class OrgGraph:
     def _set_org_metadata(self, org: Org) -> None:
         self._management_account_id = org["MasterAccountId"]
         self.organization_id = org["Id"]
-    
+
     def _set_root_metadata(self, org: Org, resource: Root) -> None:
         self._root_id = resource["Id"]
+
+    def ac(self, account_id: str) -> Account:
+        data: Dict[str, Any] = self._graph.nodes[account_id]
+        if data["type"] != "account":
+            raise AssertionError(f"{account_id=} is {data['type']=}, not account")
+        account = cast(Account, {k: v for k, v in data.items() if k != "type"})
+        return account
 
 
 def snapshot_org(session: Session) -> OrgGraph:
@@ -74,6 +81,7 @@ def get_org_graph(session: Session) -> nx.Graph:
     pub.subscribe(add_root, "root", graph=graph)
     pub.subscribe(add_organizational_unit, "organizational_unit", graph=graph)
     pub.subscribe(add_account, "account", graph=graph)
+    pub.subscribe(add_tag, "tag", graph=graph)
 
     crawl_organization(session)
 
@@ -97,6 +105,10 @@ def add_organizational_unit(graph: nx.DiGraph, resource: OrgUnit, parent: Parent
 def add_account(graph: nx.DiGraph, resource: Account, parent: Parent) -> None:
     graph.add_node(resource["Id"], **resource, type="account")
     graph.add_edge(parent["Id"], resource["Id"])
+
+
+def add_tag(graph: nx.DiGraph, resource: Resource, tag: Tag) -> None:
+    graph.nodes[resource["Id"]][f"tag:{tag['Key']}"] = tag["Value"]
 
 
 def get_root(graph: nx.DiGraph) -> str:

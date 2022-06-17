@@ -6,7 +6,7 @@ from org_graph import (
     read_graphml,
     get_root,
 )
-from typing import Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, cast
 import tkinter as tk
 import networkx as nx  # type: ignore[import]
 from tkinter import ttk
@@ -75,12 +75,14 @@ class BrowserController:
         path: PathSelection,
         org: nx.DiGraph,
         miller_view: "MillerView",
-        account_table_view: "AccountTableView"
+        account_table_view: "AccountTableView",
+        resource_detail_view: "ResourceDetailView",
     ):
         self.org = org
         self.path = path
         self.miller_view = miller_view
         self.account_table_view = account_table_view
+        self.resource_detail_view = resource_detail_view
 
     def update_selection(self, depth: int, node: str) -> None:
         self.path.update_selection(depth, node)
@@ -137,6 +139,12 @@ class BrowserController:
         
         )
         self.account_table_view.fill(rows)
+
+    def update_resource_detail_view(self, selection: str) -> None:
+        detail = cast(Dict[str, str], self.org.nodes[selection])
+        self.resource_detail_view.clear()
+        for key, value in detail.items():
+            self.resource_detail_view.add_detail(key, value)
 
 
 class MillerColumn(ttk.Treeview):
@@ -275,6 +283,10 @@ class AccountTableView(ttk.Frame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.table.grid(column=0, row=0, sticky="NSEW")
+
+        print("account table view init")
+
+        self.table.bind("<ButtonRelease>", self.on_click)
     
     def set_controller(self, controller: BrowserController) -> None:
         self.controller = controller
@@ -293,6 +305,20 @@ class AccountTableView(ttk.Frame):
                 text=account.Id,
                 values=account,
             )
+
+    def first_selection(self) -> Optional[str]:
+        selection = self.table.selection()
+        if not selection:
+            return None
+        return selection[0]
+
+    def on_click(self, event: "tk.Event[AccountTableView]") -> None:
+        print(event)
+        if not self.controller:
+            return
+        selection = self.first_selection()
+        if selection is not None:
+            self.controller.update_resource_detail_view(selection)
 
 
 class ResourceDetailView(ttk.Frame):
@@ -333,6 +359,13 @@ class ResourceDetailView(ttk.Frame):
         self.resource_name.grid(column=0, row=0, sticky="NSEW")
         self.tag_table.grid(column=0, row=1, sticky="NSEW")
 
+    def clear(self) -> None:
+        for r in self.tag_table.get_children():
+            self.tag_table.delete(r)
+    
+    def add_detail(self, key: str, value: str) -> None:
+        self.tag_table.insert(parent="", index="end", iid=key, values=(key, value))
+
 
 class BrowserApp(tk.Tk):
 
@@ -359,7 +392,7 @@ class BrowserApp(tk.Tk):
         self.path = PathSelection(org=self.org_tree)
 
         self.controller = BrowserController(
-            self.path, self.org_tree, self.miller_view, self.table_view
+            self.path, self.org_tree, self.miller_view, self.table_view, self.tag_table
         )
 
         self.miller_view.set_controller(self.controller)

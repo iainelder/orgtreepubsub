@@ -24,6 +24,9 @@ pytest-mock = "^3.7.0"
 tabulate = "^0.8.9"
 ipython = "^8.4.0"
 
+[tool.poetry.scripts]
+dump_org = "dump_org:main"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

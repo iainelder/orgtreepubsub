@@ -141,8 +141,10 @@ class BrowserController:
         self.account_table_view.fill(rows)
 
     def update_resource_detail_view(self, selection: str) -> None:
-        detail = cast(Dict[str, str], self.org.nodes[selection])
         self.resource_detail_view.clear()
+        if selection is None:
+            return
+        detail = cast(Dict[str, str], self.org.nodes[selection])
         for key, value in detail.items():
             self.resource_detail_view.add_detail(key, value)
 
@@ -163,6 +165,8 @@ class MillerColumn(ttk.Treeview):
         self.column("Name", width=160, stretch=True)
         self.column("Accounts", width=40, stretch=False)
 
+        # TODO: Replace ButtonRelease with TreeviewSelect. Fix the infinite loop
+        # that it causes.
         self.bind("<ButtonRelease>", parent.on_click_column)
 
     def clear(self) -> None:
@@ -284,9 +288,7 @@ class AccountTableView(ttk.Frame):
         self.grid_columnconfigure(0, weight=1)
         self.table.grid(column=0, row=0, sticky="NSEW")
 
-        print("account table view init")
-
-        self.table.bind("<ButtonRelease>", self.on_click)
+        self.table.bind("<<TreeviewSelect>>", self.on_click)
     
     def set_controller(self, controller: BrowserController) -> None:
         self.controller = controller
@@ -313,12 +315,10 @@ class AccountTableView(ttk.Frame):
         return selection[0]
 
     def on_click(self, event: "tk.Event[AccountTableView]") -> None:
-        print(event)
         if not self.controller:
             return
         selection = self.first_selection()
-        if selection is not None:
-            self.controller.update_resource_detail_view(selection)
+        self.controller.update_resource_detail_view(selection)
 
 
 class ResourceDetailView(ttk.Frame):

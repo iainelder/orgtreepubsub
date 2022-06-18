@@ -166,8 +166,13 @@ class MillerColumn(ttk.Treeview):
         self.column("Accounts", width=40, stretch=False)
 
         # TODO: Replace ButtonRelease with TreeviewSelect. Fix the infinite loop
-        # that it causes.
-        self.bind("<ButtonRelease>", parent.on_click_column)
+        # that it causes. The call sequence that might trigger it:
+        #
+        # * MillerView.on_click_column
+        # * BrowserController.update_selection
+        # * BrowserController.show_path_in_view
+        # * MillerView.clear_column_selection
+        self.bind("<<TreeviewSelect>>", parent.on_click_column)
 
     def clear(self) -> None:
         for c in self.get_children():

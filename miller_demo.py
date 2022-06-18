@@ -346,16 +346,6 @@ class ResourceDetailView(ttk.Frame):
 
         for c in columns:
             self.tag_table.heading(c, text=c)
-        
-        self.tag_table.insert(
-            parent="", index="end", iid="Owner", values=("Owner", "Marge Simpson")
-        )
-        self.tag_table.insert(
-            parent="", index="end", iid="Project", values=("Project", "The Simpsons"),
-        )
-        self.tag_table.insert(
-            parent="", index="end", iid="Environment", values=("Environment", "Springfield"),
-        )
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)

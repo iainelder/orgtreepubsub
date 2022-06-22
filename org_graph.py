@@ -127,6 +127,23 @@ def get_org_metadata(graph: nx.DiGraph) -> str:
     raise AssertionError("graph has no root node")
 
 
+# TODO: This could be generalized to get the path from arbitrary nodes and to
+# support any attribute as the component.
+def get_path_from_root_with_name_components(graph: nx.DiGraph, target: str):
+    root = get_root(graph)
+    components = nx.shortest_path(graph, root, target)
+    named_components = [graph.nodes[n]["Name"] for n in components]
+    return f"/{'/'.join(named_components)}"
+
+
+def generate_path_lookup_table(graph: nx.DiGraph):
+    root = get_root(graph)
+    return {
+        n: get_path_from_root_with_name_components(graph, n)
+        for n in nx.descendants(graph, root)
+    }
+
+
 def iter_descendant_accounts(graph: nx.DiGraph, source: str) -> Iterator[str]:
     for desc in nx.descendants(graph, source):
         if graph.nodes[desc]["type"] == "account":

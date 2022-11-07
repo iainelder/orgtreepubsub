@@ -155,6 +155,7 @@ It sounds like a combination of this tool and botocove. It appears to be
 abandoned, as it was last committed in April 2020 and has no updates to issues
 since then.
 
+[org-visualizer](https://github.com/aws-samples/org-visualiser) is an "AWS Samples" tool to visualise the AWS OU and account structure for a given org just published on 2022-11-07. The README is spookily similar to this one :-D I'm keen to see how much investment this one gets from AWS. Will it be good enough to replace this personal project?
 
 ## Drawing Options
 

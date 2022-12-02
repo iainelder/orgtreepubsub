@@ -164,7 +164,7 @@ def write_graphml(graph: nx.Graph, file: File = sys.stdout.buffer) -> None:
     By default write to standard output.
 
     Nonscalar attributes, such as lists and datetimes, are omitted, because
-    NetworkX does not support them as data values.
+    GraphML does not support them as data values.
     """
     graph_copy = deepcopy(graph)
     _delete_nonscalar_attributes(graph_copy)
@@ -175,7 +175,7 @@ def write_graphml(graph: nx.Graph, file: File = sys.stdout.buffer) -> None:
 def _delete_nonscalar_attributes(graph: nx.Graph) -> None:
     """Delete nonscalar atrributes from the graph.
 
-    NetworkX does not support nonscalar attibutes as data values.
+    GraphML does not support nonscalar attibutes as data values.
     """
 
     for attrs in graph.nodes.values():
@@ -185,3 +185,13 @@ def _delete_nonscalar_attributes(graph: nx.Graph) -> None:
             del attrs["PolicyTypes"]
         if attrs["type"] == "account":
             del attrs["JoinedTimestamp"]
+
+
+def save_org_graph(graph: nx.Graph, file: File = sys.stdout.buffer) -> None:
+    """Save the org graph using pickle.
+    """
+    nx.write_gpickle(graph, file)
+
+
+def load_org_graph(file: File) -> nx.Graph:
+    return nx.read_gpickle(file)

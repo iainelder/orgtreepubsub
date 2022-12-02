@@ -21,6 +21,8 @@ cat ~/tmp/org.graphml | poetry run python org_browser.py
 
 ## Dumping
 
+FIXME: Dumping now uses Pickle by default, so I need a new way to export GraphML.
+
 Use `dump_org` to dump the AWS organization graph in [GraphML (Graph Markup
 Language)](https://cs.brown.edu/people/rtamassi/gdhandbook/chapters/graphml.pdf).
 
@@ -204,6 +206,10 @@ graph-tool promises more complete support for
 "an exact bit-for-bit representation of all supported Property maps types",
 which includes the Python `object` type. But the module is not pip-installable,
 so I don't want to explore it just now because it would complicate the set up.
+
+[nxviz](https://github.com/ericmjl/nxviz) is simultaneously a data visualization
+research project, art project, and declarative data visualization tool. Its
+authors hope you enjoy using it to build beautiful graph visualizations.
 
 ## Inspiration
 

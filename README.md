@@ -157,7 +157,21 @@ It sounds like a combination of this tool and botocove. It appears to be
 abandoned, as it was last committed in April 2020 and has no updates to issues
 since then.
 
-[org-visualizer](https://github.com/aws-samples/org-visualiser) is an "AWS Samples" tool to visualise the AWS OU and account structure for a given org just published on 2022-11-07. The README is spookily similar to this one :-D I'm keen to see how much investment this one gets from AWS. Will it be good enough to replace this personal project?
+[org-visualizer](https://github.com/aws-samples/org-visualiser) is an "AWS
+Samples" tool to visualise the AWS OU and account structure for a given org just
+published on 2022-11-07. The README is spookily similar to this one :-D I'm keen
+to see how much investment this one gets from AWS. Will it be good enough to
+replace this personal project?
+
+[AWS Data Tools](https://github.com/timoguin/aws-data-tools-py) offers the
+OrganizationDataBuilder class to build a full model of an AWS Organization. It
+handles recursing the organizational tree and populating any relational data
+between the various nodes, e.g., parent-child relationships between an OU and an
+account. Parallel operations are not supported, so everything runs serially.
+
+It covers all the resource types (policies for example) but it's serial so may
+be slower. The README doesn't show how to interact with the data model. Still, I
+like it!
 
 ## Drawing Options
 

@@ -21,7 +21,7 @@ def test_when_org_is_new_crawl_publishes_organization(mock_session: Session) -> 
 
     spy = Mock()
     pub.subscribe(spy, "organization")
-    
+
     crawl_organization(mock_session)
 
     org = client.describe_organization()["Organization"]
@@ -34,7 +34,7 @@ def test_when_org_is_new_crawl_publishes_root_as_resource(mock_session: Session)
 
     spy = Mock()
     pub.subscribe(spy, "root")
-    
+
     crawl_organization(mock_session)
 
     org = client.describe_organization()["Organization"]
@@ -48,7 +48,7 @@ def test_when_org_is_new_crawl_publishes_root_as_parent(mock_session: Session) -
 
     spy = Mock()
     pub.subscribe(spy, "parent")
-    
+
     crawl_organization(mock_session)
 
     root = client.list_roots()["Roots"][0]
@@ -61,7 +61,7 @@ def test_when_org_is_new_crawl_publishes_mgmt_account(mock_session: Session) -> 
 
     spy = Mock()
     pub.subscribe(spy, "account")
-    
+
     crawl_organization(mock_session)
 
     root = client.list_roots()["Roots"][0]
@@ -75,7 +75,7 @@ def test_when_org_is_new_crawl_publishes_no_orgunit(mock_session: Session) -> No
 
     spy = Mock()
     pub.subscribe(spy, "organizational_unit")
-    
+
     crawl_organization(mock_session)
 
     spy.assert_not_called()
@@ -87,7 +87,7 @@ def test_when_org_is_new_crawl_publishes_no_tag(mock_session: Session) -> None:
 
     spy = Mock()
     pub.subscribe(spy, "tag")
-    
+
     crawl_organization(mock_session)
 
     spy.assert_not_called()
@@ -101,7 +101,7 @@ def test_when_org_has_empty_orgunit_crawl_publishes_orgunit_as_resource(mock_ses
 
     spy = Mock()
     pub.subscribe(spy, "organizational_unit")
-    
+
     crawl_organization(mock_session)
 
     spy.assert_called_once_with(parent=root, resource=orgunit)
@@ -115,7 +115,7 @@ def test_when_org_has_empty_orgunit_crawl_publishes_orgunit_as_parent(mock_sessi
 
     spy = Mock()
     pub.subscribe(spy, "parent")
-    
+
     crawl_organization(mock_session)
 
     spy.assert_any_call(parent=orgunit)

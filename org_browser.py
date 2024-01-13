@@ -69,7 +69,7 @@ class Browser(ttk.Frame):
         ]
 
         self.table.insert("", "end", iid=resource["Id"], text=resource["Id"], values=row)
-    
+
 
     def add_organizational_unit(self, resource: OrgUnit, parent: Parent) -> None:
         self.tree.insert(parent["Id"], "end", iid=resource["Id"], text=resource["Id"])

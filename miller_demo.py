@@ -119,7 +119,7 @@ class BrowserController:
             )
 
             # TODO: Remove this definitely if I stick with the account count
-            # column. 
+            # column.
             # if parent is None:
             #     self.miller_view.set_column_name(depth, "")
             # else:
@@ -129,14 +129,14 @@ class BrowserController:
                 self.miller_view.clear_column_selection(depth)
             else:
                 self.miller_view.set_column_selection(depth, selected_child)
-    
+
     def show_descendant_accounts_in_table(self) -> None:
         account_ids = iter_descendant_accounts(self.org, self.path.components[-1])
         account_datas = (self.org.nodes[id] for id in account_ids)
         rows = (
             AccountRow(**{k: v for k, v in data.items() if k in AccountRow._fields})
             for data in account_datas
-        
+
         )
         self.account_table_view.fill(rows)
 
@@ -226,13 +226,13 @@ class MillerView(ttk.Frame):
 
     def set_column_name(self, depth: int, name: str) -> None:
         self.columns[depth].heading("Name", text=name)
-    
+
     def clear_column_selection(self, depth: int) -> None:
         self.columns[depth].selection_clear()
-    
+
     def set_column_selection(self, depth: int, iid: str) -> None:
         self.columns[depth].selection_set(iid)
-    
+
     def fill_column(
         self,
         depth: int,
@@ -241,7 +241,7 @@ class MillerView(ttk.Frame):
         descendants_per_child: List[str]
     ) -> None:
         self.columns[depth].fill(children, names, descendants_per_child)
-    
+
     def show_column(self, depth: int) -> None:
         self.columns[depth].grid(column=depth, row=0, sticky="NSEW")
         self.grid_columnconfigure(depth, weight=1)
@@ -251,7 +251,7 @@ class MillerView(ttk.Frame):
 
     def max_depth(self) -> int:
         return len(self.columns)
-    
+
     def on_click_column(self, event: "tk.Event[MillerColumn]") -> None:
         if not self.controller:
             return
@@ -264,14 +264,14 @@ class MillerView(ttk.Frame):
     def clear_all_columns(self) -> None:
         for column in self.columns:
             column.clear()
-    
+
     def hide_all_columns(self) -> None:
         for index in range(len(self.columns)):
             self.hide_column(index)
 
 
 class AccountTableView(ttk.Frame):
-    
+
     controller: BrowserController
     table: ttk.Treeview
 
@@ -294,7 +294,7 @@ class AccountTableView(ttk.Frame):
         self.table.grid(column=0, row=0, sticky="NSEW")
 
         self.table.bind("<<TreeviewSelect>>", self.on_click)
-    
+
     def set_controller(self, controller: BrowserController) -> None:
         self.controller = controller
 
@@ -357,7 +357,7 @@ class ResourceDetailView(ttk.Frame):
     def clear(self) -> None:
         for r in self.tag_table.get_children():
             self.tag_table.delete(r)
-    
+
     def add_detail(self, key: str, value: str) -> None:
         self.tag_table.insert(parent="", index="end", iid=key, values=(key, value))
 

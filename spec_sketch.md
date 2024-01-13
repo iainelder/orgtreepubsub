@@ -14,9 +14,9 @@ org.management
 org.organization_id -> OrganizationTypeDef["OrganizationId"]
 org.list_roots() -> List[RootTypeDef]
 org.root (list_roots[0]) -> RootTypeDef
-org.root.describe() -> 
+org.root.describe() ->
 
-org.list_accounts() -> 
+org.list_accounts() ->
 
 org.root.list_descendants()
 org.root.name

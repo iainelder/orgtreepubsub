@@ -293,7 +293,7 @@ class AccountTableView(ttk.Frame):
         self.grid_columnconfigure(0, weight=1)
         self.table.grid(column=0, row=0, sticky="NSEW")
 
-        self.table.bind("<<TreeviewSelect>>", self.on_click)
+        self.table.bind("<<TreeviewSelect>>", self.on_click)  # type: ignore[arg-type]
 
     def set_controller(self, controller: BrowserController) -> None:
         self.controller = controller
@@ -323,7 +323,7 @@ class AccountTableView(ttk.Frame):
         if not self.controller:
             return
         selection = self.first_selection()
-        self.controller.update_resource_detail_view(selection)
+        self.controller.update_resource_detail_view(selection)  # type: ignore[arg-type]
 
 
 class ResourceDetailView(ttk.Frame):

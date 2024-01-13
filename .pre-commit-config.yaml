@@ -4,3 +4,11 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        language: system
+        entry: poetry run mypy --strict --show-error-codes .
+        pass_filenames: false

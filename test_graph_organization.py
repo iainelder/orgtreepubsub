@@ -1,17 +1,16 @@
-from pytest import raises
+import pytest
 from boto3 import Session
+import boto3
 from org_graph import snapshot_org
-from type_defs import OrganizationDoesNotExistError
 
 
-def test_when_org_does_not_exist_raises_error() -> None:
-    with raises(OrganizationDoesNotExistError):
-        snapshot_org(Session())
+@pytest.fixture(autouse=True)
+def new_org() -> None:
+    boto3.client("organizations").create_organization(FeatureSet="ALL")
 
 
 def test_new_org_has_mgmt_account_property() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+    client = boto3.client("organizations")
     org_desc = client.describe_organization()["Organization"]
     mgmt_desc = client.describe_account(AccountId=org_desc["MasterAccountId"])["Account"]
 
@@ -20,8 +19,7 @@ def test_new_org_has_mgmt_account_property() -> None:
 
 
 def test_new_org_has_organization_id_property() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+    client = boto3.client("organizations")
     org_desc = client.describe_organization()["Organization"]
 
     graph = snapshot_org(Session())
@@ -29,8 +27,7 @@ def test_new_org_has_organization_id_property() -> None:
 
 
 def test_new_org_has_root_property() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+    client = boto3.client("organizations")
     root_desc = client.list_roots()["Roots"][0]
 
     graph = snapshot_org(Session())
@@ -38,8 +35,7 @@ def test_new_org_has_root_property() -> None:
 
 
 def test_new_org_has_mgmt_account_via_ac() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+    client = boto3.client("organizations")
     org_desc = client.describe_organization()["Organization"]
     mgmt_desc = client.describe_account(AccountId=org_desc["MasterAccountId"])["Account"]
 

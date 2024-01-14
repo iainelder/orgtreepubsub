@@ -2,10 +2,11 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from copy import deepcopy
 import sys
-from typing import Any, BinaryIO, Dict, Iterator, Union, cast
+from typing import Any, BinaryIO, Dict, Iterator, Union, cast, Mapping, List
 from pubsub import pub  # type: ignore[import]
 import networkx as nx  # type: ignore[import]
 from boto3 import Session
+from botocore import xform_name
 from orgtreepubsub import crawl_organization
 
 from type_defs import Org, Parent, Resource, Tag
@@ -22,14 +23,8 @@ class Root:
     id: str
     arn: str
     name: str
-    tags: Dict[str, str] = field(default_factory=dict)
-
-    @staticmethod
-    def from_boto3(root: RootTypeDef) -> "Root":
-        return Root(id=root["Id"], arn=root["Arn"], name=root["Name"])
-
-    def add_tag(self, tag: Tag) -> None:
-        self.tags[tag["Key"]] = tag["Value"]
+    policy_types: List[Any]
+    tags: Mapping[str, str]
 
 
 @dataclass(frozen=True)
@@ -38,21 +33,10 @@ class Account:
     arn: str
     name: str
     email: str
+    status: str
+    joined_method: str
     joined_timestamp: datetime
-    tags: Dict[str, str] = field(default_factory=dict)
-
-    @staticmethod
-    def from_boto3(account: AccountTypeDef) -> "Account":
-        return Account(
-            id=account["Id"],
-            arn=account["Arn"],
-            name=account["Name"],
-            email=account["Email"],
-            joined_timestamp=account["JoinedTimestamp"]
-        )
-
-    def add_tag(self, tag: Tag) -> None:
-        self.tags[tag["Key"]] = tag["Value"]
+    # tags: Mapping[str, str]
 
 
 @dataclass(frozen=True)
@@ -60,18 +44,7 @@ class OrgUnit:
     id: str
     arn: str
     name: str
-    tags: Dict[str, str] = field(default_factory=dict)
-
-    @staticmethod
-    def from_boto3(account: OrganizationalUnitTypeDef) -> "OrgUnit":
-        return OrgUnit(
-            id=account["Id"],
-            arn=account["Arn"],
-            name=account["Name"],
-        )
-
-    def add_tag(self, tag: Tag) -> None:
-        self.tags[tag["Key"]] = tag["Value"]
+    tags: Dict[str, str]
 
 
 class OrgGraph:
@@ -82,15 +55,16 @@ class OrgGraph:
 
     @property
     def management_account(self) -> Account:
-        for account in nx.get_node_attributes(self._graph, "account").values():
-            if account.id == self._management_account_id:
-                return cast(Account, account)
+        for d in self._graph.nodes.values():
+            if "type" in d and d["type"] == Account and d["Id"] == self._management_account_id:
+                return Account(**{xform_name(k): v for k, v in d.items() if k != "type"})
         raise AssertionError("missed management account")
 
     @property
     def root(self) -> Root:
-        for root in nx.get_node_attributes(self._graph, "root").values():
-            return cast(Root, root)
+        for d in self._graph.nodes.values():
+            if "type" in d and d["type"] == Root:
+                return Root(**{xform_name(k): v for k, v in d.items() if k != "type"})
         raise AssertionError("missed root")
 
     def _set_org_metadata(self, org: Org) -> None:
@@ -98,32 +72,32 @@ class OrgGraph:
         self.organization_id = org["Id"]
 
     def account(self, id: str) -> Account:
-        for account in nx.get_node_attributes(self._graph, "account").values():
-            if account.id == id:
-                return cast(Account, account)
-        raise ValueError(id)
+        for d in self._graph.nodes.values():
+            if "type" in d and d["type"] == Account:
+                return Account(**{xform_name(k): v for k, v in d.items() if k != "type"})
+        raise AssertionError("missed account")
 
     def orgunit(self, name: str) -> OrgUnit:
-        for orgunit in nx.get_node_attributes(self._graph, "organizational_unit").values():
-            if orgunit.name == name:
-                return cast(OrgUnit, orgunit)
-        raise ValueError(id)
+        for d in self._graph.nodes.values():
+            if "type" in d and d["type"] == OrgUnit:
+                return OrgUnit(**{xform_name(k): v for k, v in d.items() if k != "type"})
+        raise AssertionError("missed orgunit")
 
     def add_root(self, resource: RootTypeDef, org: Org) -> None:
-        self._graph.add_node(resource["Id"], root=Root.from_boto3(resource))
+        self._graph.add_node(resource["Id"], type=Root, tags={}, **resource)
         self._graph.add_edge(org["Id"], resource["Id"])
 
     def add_organizational_unit(self, resource: OrganizationalUnitTypeDef, parent: Parent) -> None:
-        self._graph.add_node(resource["Id"], organizational_unit=OrgUnit.from_boto3(resource))
+        self._graph.add_node(resource["Id"], type=OrgUnit, tags={}, **resource)
         self._graph.add_edge(parent["Id"], resource["Id"])
 
     def add_account(self, resource: AccountTypeDef, parent: Parent) -> None:
-        self._graph.add_node(resource["Id"], account=Account.from_boto3(resource))
+        self._graph.add_node(resource["Id"], type=Account, **resource)
         self._graph.add_edge(parent["Id"], resource["Id"])
 
     def add_tag(self, resource: Resource, tag: Tag) -> None:
-        for resource_ in self._graph.nodes[resource["Id"]].values():
-            resource_.add_tag(tag)
+        node = self._graph.nodes[resource["Id"]]
+        node["tags"][tag["Key"]] = tag["Value"]
 
 def snapshot_org(session: Session) -> OrgGraph:
     internal_graph = nx.DiGraph()

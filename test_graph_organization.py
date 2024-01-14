@@ -15,7 +15,14 @@ def test_new_org_has_mgmt_account_property() -> None:
     mgmt_desc = client.describe_account(AccountId=org_desc["MasterAccountId"])["Account"]
 
     graph = snapshot_org(Session())
-    assert graph.management_account == Account.from_boto3(mgmt_desc)
+    assert all([
+        graph.management_account.id == mgmt_desc["Id"],
+        graph.management_account.arn == mgmt_desc["Arn"],
+        graph.management_account.name == mgmt_desc["Name"],
+        graph.management_account.email == mgmt_desc["Email"],
+        graph.management_account.joined_method == mgmt_desc["JoinedMethod"],
+        graph.management_account.joined_timestamp == mgmt_desc["JoinedTimestamp"],
+    ])
 
 
 def test_new_org_has_organization_id_property() -> None:
@@ -42,7 +49,15 @@ def test_new_org_has_mgmt_account_via_account() -> None:
     mgmt_desc = client.describe_account(AccountId=org_desc["MasterAccountId"])["Account"]
 
     graph = snapshot_org(Session())
-    assert graph.account(id=org_desc["MasterAccountId"]) == Account.from_boto3(mgmt_desc)
+    account = graph.account(id=org_desc["MasterAccountId"])
+    assert all([
+        account.id == mgmt_desc["Id"],
+        account.arn == mgmt_desc["Arn"],
+        account.name == mgmt_desc["Name"],
+        account.email == mgmt_desc["Email"],
+        account.joined_method == mgmt_desc["JoinedMethod"],
+        account.joined_timestamp == mgmt_desc["JoinedTimestamp"],
+    ])
 
 
 def test_has_tagged_root() -> None:
@@ -57,10 +72,15 @@ def test_has_tagged_root() -> None:
 def test_has_orgunit() -> None:
     client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
-    orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    orgunit_desc = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
 
     graph = snapshot_org(Session())
-    assert graph.orgunit(name="OU1") == OrgUnit.from_boto3(orgunit)
+    orgunit = graph.orgunit(name="OU1")
+    assert all([
+        orgunit.id == orgunit_desc["Id"],
+        orgunit.arn == orgunit_desc["Arn"],
+        orgunit.name == orgunit_desc["Name"],
+    ])
 
 
 def test_has_tagged_orgunit() -> None:

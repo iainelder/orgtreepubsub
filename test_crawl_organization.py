@@ -1,78 +1,69 @@
 from typing import Any
 from pubsub import pub  # type: ignore[import]
 from boto3 import Session
+import boto3
 from mypy_boto3_organizations.type_defs import TagTypeDef
-from type_defs import OrganizationError, OrganizationDoesNotExistError
+from type_defs import OrganizationError
 from orgtreepubsub import crawl_organization
 from pytest import raises
 from unittest.mock import Mock
 from botocore.exceptions import ClientError
 from pytest_mock import MockerFixture
+import pytest
 
 
-def test_when_org_does_not_exist_crawl_raises_error() -> None:
-    with raises(OrganizationDoesNotExistError):
-        crawl_organization(Session())
+@pytest.fixture(autouse=True)
+def new_org() -> None:
+    boto3.client("organizations").create_organization(FeatureSet="ALL")
 
 
-def test_when_org_is_new_crawl_publishes_organization() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
-
+def test_in_new_org_publishes_organization() -> None:
     spy = Mock()
     pub.subscribe(spy, "organization")
 
     crawl_organization(Session())
 
+    client = boto3.client("organizations")
     org = client.describe_organization()["Organization"]
     spy.assert_called_once_with(org=org)
 
 
-def test_when_org_is_new_crawl_publishes_root_as_resource() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
-
+def test_in_new_org_publishes_root_as_resource() -> None:
     spy = Mock()
     pub.subscribe(spy, "root")
 
     crawl_organization(Session())
 
+    client = boto3.client("organizations")
     org = client.describe_organization()["Organization"]
     root = client.list_roots()["Roots"][0]
     spy.assert_called_once_with(org=org, resource=root)
 
 
-def test_when_org_is_new_crawl_publishes_root_as_parent() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
-
+def test_in_new_org_publishes_root_as_parent() -> None:
     spy = Mock()
     pub.subscribe(spy, "parent")
 
     crawl_organization(Session())
 
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     spy.assert_called_once_with(parent=root)
 
 
-def test_when_org_is_new_crawl_publishes_mgmt_account() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
-
+def test_in_new_org_publishes_mgmt_account() -> None:
     spy = Mock()
     pub.subscribe(spy, "account")
 
     crawl_organization(Session())
 
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     mgmt_account = client.list_accounts()["Accounts"][0]
     spy.assert_called_once_with(parent=root, resource=mgmt_account)
 
 
-def test_when_org_is_new_crawl_publishes_no_orgunit() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
-
+def test_in_new_org_publishes_no_orgunit() -> None:
     spy = Mock()
     pub.subscribe(spy, "organizational_unit")
 
@@ -81,10 +72,7 @@ def test_when_org_is_new_crawl_publishes_no_orgunit() -> None:
     spy.assert_not_called()
 
 
-def test_when_org_is_new_crawl_publishes_no_tag() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
-
+def test_in_new_org_publishes_no_tag() -> None:
     spy = Mock()
     pub.subscribe(spy, "tag")
 
@@ -93,9 +81,8 @@ def test_when_org_is_new_crawl_publishes_no_tag() -> None:
     spy.assert_not_called()
 
 
-def test_when_org_has_empty_orgunit_crawl_publishes_orgunit_as_resource() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+def test_publishes_empty_orgunit_as_resource() -> None:
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
 
@@ -107,9 +94,8 @@ def test_when_org_has_empty_orgunit_crawl_publishes_orgunit_as_resource() -> Non
     spy.assert_called_once_with(parent=root, resource=orgunit)
 
 
-def test_when_org_has_empty_orgunit_crawl_publishes_orgunit_as_parent() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+def test_publishes_empty_orgunit_as_parent() -> None:
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
 
@@ -121,9 +107,8 @@ def test_when_org_has_empty_orgunit_crawl_publishes_orgunit_as_parent() -> None:
     spy.assert_any_call(parent=orgunit)
 
 
-def test_when_orgunit_parents_account_crawl_publishes_account_as_resource() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> None:
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
     child_request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
@@ -138,9 +123,8 @@ def test_when_orgunit_parents_account_crawl_publishes_account_as_resource() -> N
     spy.assert_any_call(parent=orgunit, resource=child_account)
 
 
-def test_when_orgunit_parents_orgunit_crawl_publishes_child_orgunit_as_resource() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_resource() -> None:
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     parent_orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
     child_orgunit = client.create_organizational_unit(ParentId=parent_orgunit["Id"], Name="OU2")["OrganizationalUnit"]
@@ -153,9 +137,8 @@ def test_when_orgunit_parents_orgunit_crawl_publishes_child_orgunit_as_resource(
     spy.assert_any_call(parent=parent_orgunit, resource=child_orgunit)
 
 
-def test_when_orgunit_parents_orgunit_crawl_publishes_child_orgunit_as_parent() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent() -> None:
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     parent_orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
     child_orgunit = client.create_organizational_unit(ParentId=parent_orgunit["Id"], Name="OU2")["OrganizationalUnit"]
@@ -168,9 +151,8 @@ def test_when_orgunit_parents_orgunit_crawl_publishes_child_orgunit_as_parent() 
     spy.assert_any_call(parent=child_orgunit)
 
 
-def test_when_root_has_tag_crawl_publishes_tag() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+def test_when_publishes_tag_on_root() -> None:
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     tag: TagTypeDef = {"Key": "RootTag", "Value": "RootValue"}
     client.tag_resource(ResourceId=root["Id"], Tags=[tag])
@@ -183,9 +165,8 @@ def test_when_root_has_tag_crawl_publishes_tag() -> None:
     spy.assert_called_once_with(resource=root, tag=tag)
 
 
-def test_when_orgunit_has_tag_crawl_publishes_tag() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+def test_publishes_tag_on_orgunit() -> None:
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
     tag: TagTypeDef = {"Key": "OrgunitTag", "Value": "OrgunitValue"}
@@ -199,9 +180,8 @@ def test_when_orgunit_has_tag_crawl_publishes_tag() -> None:
     spy.assert_called_once_with(resource=orgunit, tag=tag)
 
 
-def test_when_account_has_tag_crawl_publishes_tag() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+def test_publishes_tag_on_account() -> None:
+    client = boto3.client("organizations")
     request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
     account = client.describe_account(AccountId=request["AccountId"])["Account"]
     tag: TagTypeDef = {"Key": "AccountTag", "Value": "AccountValue"}
@@ -215,9 +195,8 @@ def test_when_account_has_tag_crawl_publishes_tag() -> None:
     spy.assert_called_once_with(resource=account, tag=tag)
 
 
-def test_when_resource_has_two_tags_crawl_publishes_twice() -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
+def test_when_resource_has_two_tags_publishes_twice() -> None:
+    client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     tag1: TagTypeDef = {"Key": "RootTag1", "Value": "RootValue1"}
     tag2: TagTypeDef = {"Key": "RootTag2", "Value": "RootValue2"}
@@ -232,10 +211,7 @@ def test_when_resource_has_two_tags_crawl_publishes_twice() -> None:
     spy.assert_any_call(resource=root, tag=tag2)
 
 
-def test_crawl_causes_organization_error_on_client_error(mocker: MockerFixture) -> None:
-    client = Session().client("organizations")
-    client.create_organization(FeatureSet="ALL")
-
+def test_raises_organization_error_on_client_error(mocker: MockerFixture) -> None:
     def list_roots(*args: Any, **kwargs: Any) -> None:
         raise ClientError(
             {"Error": {"Message": "broken!", "Code": "OhNo"}}, "list_roots"

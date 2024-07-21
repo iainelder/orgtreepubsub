@@ -1,3 +1,5 @@
+# pyright: reportTypedDictNotRequiredAccess=false, reportUnknownMemberType=false
+
 from typing import Any
 from pubsub import pub  # type: ignore[import]
 from boto3 import Session

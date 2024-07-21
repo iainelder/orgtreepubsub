@@ -1,3 +1,6 @@
+# pyright: reportTypedDictNotRequiredAccess=false
+# pyright: reportUnknownMemberType=false
+
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, Future, wait
 from typing import Callable, Iterable, Optional, Set

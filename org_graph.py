@@ -1,5 +1,14 @@
+# pyright: reportAttributeAccessIssue=false
+# pyright: reportMissingTypeArgument=false
+# pyright: reportPrivateUsage=false
+# pyright: reportTypedDictNotRequiredAccess=false
+# pyright: reportUnknownArgumentType=false
+# pyright: reportUnknownMemberType=false
+# pyright: reportUnknownParameterType=false
+# pyright: reportUnknownVariableType=false
+
 from datetime import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from copy import deepcopy
 import sys
 from typing import Any, BinaryIO, Dict, Iterator, Union, cast, Mapping, List
@@ -123,8 +132,6 @@ def snapshot_org(session: Session) -> OrgGraph:
 # It also accepts a str path to a file and manages the file handle itself. This
 # is convenient for reading.
 File = Union[BinaryIO, str]
-
-
 
 
 def get_org_graph(session: Session) -> nx.Graph:

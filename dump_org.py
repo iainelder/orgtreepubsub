@@ -1,3 +1,5 @@
+# pyright: reportUnknownVariableType=false
+
 from boto3 import Session
 from org_graph import get_org_graph, save_org_graph
 

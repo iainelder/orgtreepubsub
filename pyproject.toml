@@ -27,6 +27,9 @@ dump_org = "dump_org:main"
 [tool.poetry.group.dev.dependencies]
 pyright = "^1.1.372"
 
+[tool.pyright]
+typeCheckingMode = "strict"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

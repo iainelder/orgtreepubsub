@@ -1,7 +1,9 @@
+# pyright: reportTypedDictNotRequiredAccess=false, reportUnknownMemberType=false
+
 import pytest
 from boto3 import Session
 import boto3
-from org_graph import snapshot_org, Account, OrgUnit
+from org_graph import snapshot_org
 
 
 @pytest.fixture(autouse=True)

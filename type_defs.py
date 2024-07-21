@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from typing import Union, Literal, Self
+from typing import Literal, Self
 
 from mypy_boto3_organizations.client import OrganizationsClient
 from mypy_boto3_organizations.type_defs import (
@@ -137,8 +137,8 @@ class Tag:
         )
 
 
-Parent = Union[Root, OrgUnit]
-Resource = Union[Account, OrgUnit, Root]
+Parent = Root|OrgUnit
+Resource = Account|OrgUnit|Root
 
 OrgClient = OrganizationsClient
 

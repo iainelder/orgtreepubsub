@@ -5,7 +5,7 @@ from pubsub import pub  # type: ignore[import]
 from boto3 import Session
 import boto3
 from mypy_boto3_organizations.type_defs import TagTypeDef
-from type_defs import Account, OrganizationError
+from type_defs import Account, OrgUnit, OrganizationError
 from orgtreepubsub import crawl_organization
 from pytest import raises
 from unittest.mock import Mock
@@ -86,7 +86,9 @@ def test_in_new_org_publishes_no_tag() -> None:
 def test_publishes_empty_orgunit_as_resource() -> None:
     client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
-    orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    orgunit = OrgUnit.from_boto3(
+        client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    )
 
     spy = Mock()
     pub.subscribe(spy, "organizational_unit")
@@ -99,7 +101,9 @@ def test_publishes_empty_orgunit_as_resource() -> None:
 def test_publishes_empty_orgunit_as_parent() -> None:
     client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
-    orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    orgunit = OrgUnit.from_boto3(
+        client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    )
 
     spy = Mock()
     pub.subscribe(spy, "parent")
@@ -112,10 +116,12 @@ def test_publishes_empty_orgunit_as_parent() -> None:
 def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> None:
     client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
-    orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    orgunit = OrgUnit.from_boto3(
+        client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    )
     child_request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
     child_account = Account.from_boto3(client.describe_account(AccountId=child_request["AccountId"])["Account"])
-    client.move_account(AccountId=child_account.id, SourceParentId=root["Id"], DestinationParentId=orgunit["Id"])
+    client.move_account(AccountId=child_account.id, SourceParentId=root["Id"], DestinationParentId=orgunit.id)
 
     spy = Mock()
     pub.subscribe(spy, "account")
@@ -128,8 +134,12 @@ def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> 
 def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_resource() -> None:
     client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
-    parent_orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
-    child_orgunit = client.create_organizational_unit(ParentId=parent_orgunit["Id"], Name="OU2")["OrganizationalUnit"]
+    parent_orgunit = OrgUnit.from_boto3(
+        client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    )
+    child_orgunit = OrgUnit.from_boto3(
+        client.create_organizational_unit(ParentId=parent_orgunit.id, Name="OU2")["OrganizationalUnit"]
+    )
 
     spy = Mock()
     pub.subscribe(spy, "organizational_unit")
@@ -142,8 +152,12 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_resource
 def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent() -> None:
     client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
-    parent_orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
-    child_orgunit = client.create_organizational_unit(ParentId=parent_orgunit["Id"], Name="OU2")["OrganizationalUnit"]
+    parent_orgunit = OrgUnit.from_boto3(
+        client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    )
+    child_orgunit = OrgUnit.from_boto3(
+        client.create_organizational_unit(ParentId=parent_orgunit.id, Name="OU2")["OrganizationalUnit"]
+    )
 
     spy = Mock()
     pub.subscribe(spy, "parent")
@@ -170,9 +184,11 @@ def test_when_publishes_tag_on_root() -> None:
 def test_publishes_tag_on_orgunit() -> None:
     client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
-    orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    orgunit = OrgUnit.from_boto3(
+        client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+    )
     tag: TagTypeDef = {"Key": "OrgunitTag", "Value": "OrgunitValue"}
-    client.tag_resource(ResourceId=orgunit["Id"], Tags=[tag])
+    client.tag_resource(ResourceId=orgunit.id, Tags=[tag])
 
     spy = Mock()
     pub.subscribe(spy, "tag")

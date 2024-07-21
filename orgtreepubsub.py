@@ -127,21 +127,24 @@ def list_roots(client: OrgClient) -> Iterable[Root]:
 def list_organizational_units_for_parent(
     client: OrgClient, parent: Parent
 ) -> Iterable[OrgUnit]:
+    parent_id = parent.id if isinstance(parent, OrgUnit) else parent["Id"]
     pages = (
         client
         .get_paginator("list_organizational_units_for_parent")
-        .paginate(ParentId=parent["Id"])
+        .paginate(ParentId=parent_id)
     )
     for page in pages:
         for orgunit in page["OrganizationalUnits"]:
-            yield orgunit
+            yield OrgUnit.from_boto3(orgunit)
 
 
 def list_accounts_for_parent(client: OrgClient, parent: Parent) -> Iterable[Account]:
+    parent_id = parent.id if isinstance(parent, OrgUnit) else parent["Id"]
+
     pages = (
         client
         .get_paginator("list_accounts_for_parent")
-        .paginate(ParentId=parent["Id"])
+        .paginate(ParentId=parent_id)
     )
     for page in pages:
         for account in page["Accounts"]:
@@ -149,12 +152,7 @@ def list_accounts_for_parent(client: OrgClient, parent: Parent) -> Iterable[Acco
 
 
 def list_tags_for_resource(client: OrgClient, resource: Resource) -> Iterable[Tag]:
-    # Hack till I finish dataclass types.
-    if isinstance(resource, Account):
-        resource_id = resource.id
-    else:
-        resource_id = resource["Id"]
-
+    resource_id = resource.id if isinstance(resource, Account) or isinstance(resource, OrgUnit) else resource["Id"]
     pages = (
         client
         .get_paginator("list_tags_for_resource")

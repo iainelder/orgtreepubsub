@@ -42,8 +42,24 @@ class Account:
             joined_timestamp=account["JoinedTimestamp"],
         )
 
+
+@dataclass
+class OrgUnit:
+
+    id: str
+    arn: str
+    name: str
+
+    @classmethod
+    def from_boto3(cls, account: OrganizationalUnitTypeDef) -> Self:
+        return cls(
+            id=account["Id"],
+            arn=account["Arn"],
+            name=account["Name"],
+        )
+
+
 Org = OrganizationTypeDef
-OrgUnit = OrganizationalUnitTypeDef
 Root = RootTypeDef
 Tag = TagTypeDef
 

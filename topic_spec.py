@@ -22,6 +22,15 @@ class root:
         - resource: root description
         """
 
+class parent:
+    """
+    A parent may contain organizational units or accounts.
+    """
+
+    def msgDataSpec(parent):
+        """
+        - parent: description of root or organizational unit
+        """
 
 class organizational_unit:
     """

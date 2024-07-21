@@ -5,7 +5,7 @@ from pubsub import pub  # type: ignore[import]
 from boto3 import Session
 import boto3
 from mypy_boto3_organizations.type_defs import TagTypeDef
-from type_defs import OrganizationError
+from type_defs import Account, OrganizationError
 from orgtreepubsub import crawl_organization
 from pytest import raises
 from unittest.mock import Mock
@@ -61,7 +61,7 @@ def test_in_new_org_publishes_mgmt_account() -> None:
 
     client = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
-    mgmt_account = client.list_accounts()["Accounts"][0]
+    mgmt_account = Account.from_boto3(client.list_accounts()["Accounts"][0])
     spy.assert_called_once_with(parent=root, resource=mgmt_account)
 
 
@@ -114,8 +114,8 @@ def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> 
     root = client.list_roots()["Roots"][0]
     orgunit = client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
     child_request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
-    child_account = client.describe_account(AccountId=child_request["AccountId"])["Account"]
-    client.move_account(AccountId=child_account["Id"], SourceParentId=root["Id"], DestinationParentId=orgunit["Id"])
+    child_account = Account.from_boto3(client.describe_account(AccountId=child_request["AccountId"])["Account"])
+    client.move_account(AccountId=child_account.id, SourceParentId=root["Id"], DestinationParentId=orgunit["Id"])
 
     spy = Mock()
     pub.subscribe(spy, "account")
@@ -185,9 +185,9 @@ def test_publishes_tag_on_orgunit() -> None:
 def test_publishes_tag_on_account() -> None:
     client = boto3.client("organizations")
     request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
-    account = client.describe_account(AccountId=request["AccountId"])["Account"]
+    account = Account.from_boto3(client.describe_account(AccountId=request["AccountId"])["Account"])
     tag: TagTypeDef = {"Key": "AccountTag", "Value": "AccountValue"}
-    client.tag_resource(ResourceId=account["Id"], Tags=[tag])
+    client.tag_resource(ResourceId=account.id, Tags=[tag])
 
     spy = Mock()
     pub.subscribe(spy, "tag")

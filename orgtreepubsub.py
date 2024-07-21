@@ -145,14 +145,20 @@ def list_accounts_for_parent(client: OrgClient, parent: Parent) -> Iterable[Acco
     )
     for page in pages:
         for account in page["Accounts"]:
-            yield account
+            yield Account.from_boto3(account)
 
 
 def list_tags_for_resource(client: OrgClient, resource: Resource) -> Iterable[Tag]:
+    # Hack till I finish dataclass types.
+    if isinstance(resource, Account):
+        resource_id = resource.id
+    else:
+        resource_id = resource["Id"]
+
     pages = (
         client
         .get_paginator("list_tags_for_resource")
-        .paginate(ResourceId=resource["Id"])
+        .paginate(ResourceId=resource_id)
     )
     for page in pages:
         for tag in page["Tags"]:

@@ -3,13 +3,13 @@
 
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, Future, wait
-from typing import Callable, Iterable, Optional, Set
+from typing import Callable, Iterable, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
 from pubsub import pub  # type: ignore[import]
 
-from type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource, OrgClient
+from type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource
 from type_defs import OrganizationError, OrganizationDoesNotExistError
 import topic_spec
 
@@ -19,39 +19,115 @@ pub.addTopicDefnProvider(topic_spec, pub.TOPIC_TREE_FROM_CLASS)
 
 Task = Callable[..., None]
 
+class OrgCrawler:
 
-def crawl_organization(
-    session: Session, max_workers: int = 4, loop_wait_timeout: float = 0.1
-) -> None:
-    client = session.client("organizations")
-    queue: "Queue[Task]" = Queue()
+    def __init__(self, session: Session) -> None:
+        self.queue = Queue[Task]()
+        self.client = session.client("organizations")
 
-    pub.subscribe(publish_roots, "organization", client=client, queue=queue)
-    pub.subscribe(publish_organizational_units, "parent", client=client, queue=queue)
-    pub.subscribe(publish_accounts, "parent", client=client, queue=queue)
-    pub.subscribe(publish_tags, "root", client=client, queue=queue)
-    pub.subscribe(publish_tags, "organizational_unit", client=client, queue=queue)
-    pub.subscribe(publish_tags, "account", client=client, queue=queue)
+    def crawl(self, max_workers: int = 4, loop_wait_timeout: float = 0.1) -> None:
+        pub.subscribe(self.publish_roots, "organization")
+        pub.subscribe(self.publish_organizational_units, "parent")
+        pub.subscribe(self.publish_accounts, "parent")
+        pub.subscribe(self.publish_tags, "root")
+        pub.subscribe(self.publish_tags, "organizational_unit")
+        pub.subscribe(self.publish_tags, "account")
 
-    def init() -> None:
-        publish_organization(client, queue)
+        def init() -> None:
+            self.publish_organization()
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures: Set[Future[None]] = {executor.submit(init)}
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures: Set[Future[None]] = {executor.submit(init)}
 
-        while futures:
+            while futures:
 
-            done, _ = wait(
-                futures, timeout=loop_wait_timeout, return_when="FIRST_COMPLETED"
-            )
+                done, _ = wait(
+                    futures, timeout=loop_wait_timeout, return_when="FIRST_COMPLETED"
+                )
 
-            while not queue.empty():
-                futures.add(executor.submit(queue.get()))
+                while not self.queue.empty():
+                    futures.add(executor.submit(self.queue.get()))
 
-            for future in done:
-                raise_if_result_is_error_else_continue(future)
+                for future in done:
+                    raise_if_result_is_error_else_continue(future)
 
-            futures -= done
+                futures -= done
+
+    def publish_organization(self) -> None:
+        def _work() -> None:
+            org = self.describe_organization()
+            pub.sendMessage("organization", org=org)
+        self.queue.put(_work)
+
+    def describe_organization(self) -> Org:
+        return Org.from_boto3(self.client.describe_organization()["Organization"])
+
+    def publish_roots(self, org: Org) -> None:
+        def _work() -> None:
+            for root in self.list_roots():
+                pub.sendMessage("root", resource=root, org=org)
+                pub.sendMessage("parent", parent=root)
+        self.queue.put(_work)
+
+    def list_roots(self) -> Iterable[Root]:
+        pages = self.client.get_paginator("list_roots").paginate()
+        for page in pages:
+            for root in page["Roots"]:
+                yield Root.from_boto3(root)
+
+    def publish_organizational_units(self, parent: Parent) -> None:
+        def _work() -> None:
+            for orgunit in self.list_organizational_units_for_parent(parent):
+                pub.sendMessage("organizational_unit", resource=orgunit, parent=parent)
+                pub.sendMessage("parent", parent=orgunit)
+        self.queue.put(_work)
+
+    def list_organizational_units_for_parent(self, parent: Parent) -> Iterable[OrgUnit]:
+        pages = (
+            self.client.get_paginator("list_organizational_units_for_parent")
+            .paginate(ParentId=parent.id)
+        )
+        for page in pages:
+            for orgunit in page["OrganizationalUnits"]:
+                yield OrgUnit.from_boto3(orgunit)
+
+    def publish_accounts(self, parent: Parent) -> None:
+        def _work() -> None:
+            for account in self.list_accounts_for_parent(parent):
+                pub.sendMessage("account", resource=account, parent=parent)
+        self.queue.put(_work)
+
+    def list_accounts_for_parent(self, parent: Parent) -> Iterable[Account]:
+        pages = (
+            self.client.get_paginator("list_accounts_for_parent")
+            .paginate(ParentId=parent.id)
+        )
+        for page in pages:
+            for account in page["Accounts"]:
+                yield Account.from_boto3(account)
+
+    # PubSub needs the org and parent parameters to send events. The root event
+    # has an org property and the account and orgunit events have a parent
+    # property. The tag publisher ignores these properties,
+    def publish_tags(
+            self,
+            resource: Resource,
+            org: Org|None=None,
+            parent: Parent|None=None,
+        ) -> None:
+        def _work() -> None:
+            for tag in self.list_tags_for_resource(resource):
+                pub.sendMessage("tag", tag=tag, resource=resource)
+        self.queue.put(_work)
+
+    def list_tags_for_resource(self, resource: Resource) -> Iterable[Tag]:
+        pages = (
+            self.client.get_paginator("list_tags_for_resource")
+            .paginate(ResourceId=resource.id)
+        )
+        for page in pages:
+            for tag in page["Tags"]:
+                yield Tag.from_boto3(tag)
 
 
 def raise_if_result_is_error_else_continue(future: "Future[None]") -> None:
@@ -66,95 +142,3 @@ def raise_if_result_is_error_else_continue(future: "Future[None]") -> None:
 
 def organization_does_not_exist(error: ClientError) -> bool:
     return error.response["Error"]["Code"] == "AWSOrganizationsNotInUseException" # pyright: ignore[reportTypedDictNotRequiredAccess]
-
-
-
-def publish_organization(client: OrgClient, queue: "Queue[Task]") -> None:
-    def _work() -> None:
-        org = describe_organization(client)
-        pub.sendMessage("organization", org=org)
-    queue.put(_work)
-
-
-def publish_roots(client: OrgClient, queue: "Queue[Task]", org: Org) -> None:
-    def _work() -> None:
-        for root in list_roots(client):
-            pub.sendMessage("root", resource=root, org=org)
-            pub.sendMessage("parent", parent=root)
-    queue.put(_work)
-
-
-def publish_organizational_units(
-    client: OrgClient, queue: "Queue[Task]", parent: Parent
-) -> None:
-    def _work() -> None:
-        for orgunit in list_organizational_units_for_parent(client, parent):
-            pub.sendMessage("organizational_unit", resource=orgunit, parent=parent)
-            pub.sendMessage("parent", parent=orgunit)
-    queue.put(_work)
-
-
-def publish_accounts(client: OrgClient, queue: "Queue[Task]", parent: Parent) -> None:
-    def _work() -> None:
-        for account in list_accounts_for_parent(client, parent):
-            pub.sendMessage("account", resource=account, parent=parent)
-    queue.put(_work)
-
-
-def publish_tags(
-    client: OrgClient,
-    queue: "Queue[Task]",
-    resource: Resource,
-    parent: Optional[Parent] = None,
-    org: Optional[Org] = None,
-) -> None:
-    def _work() -> None:
-        for tag in list_tags_for_resource(client, resource):
-            pub.sendMessage("tag", tag=tag, resource=resource)
-    queue.put(_work)
-
-
-def describe_organization(client: OrgClient) -> Org:
-    return Org.from_boto3(client.describe_organization()["Organization"])
-
-
-def list_roots(client: OrgClient) -> Iterable[Root]:
-    pages = client.get_paginator("list_roots").paginate()
-    for page in pages:
-        for root in page["Roots"]:
-            yield Root.from_boto3(root)
-
-
-def list_organizational_units_for_parent(
-    client: OrgClient, parent: Parent
-) -> Iterable[OrgUnit]:
-    pages = (
-        client
-        .get_paginator("list_organizational_units_for_parent")
-        .paginate(ParentId=parent.id)
-    )
-    for page in pages:
-        for orgunit in page["OrganizationalUnits"]:
-            yield OrgUnit.from_boto3(orgunit)
-
-
-def list_accounts_for_parent(client: OrgClient, parent: Parent) -> Iterable[Account]:
-    pages = (
-        client
-        .get_paginator("list_accounts_for_parent")
-        .paginate(ParentId=parent.id)
-    )
-    for page in pages:
-        for account in page["Accounts"]:
-            yield Account.from_boto3(account)
-
-
-def list_tags_for_resource(client: OrgClient, resource: Resource) -> Iterable[Tag]:
-    pages = (
-        client
-        .get_paginator("list_tags_for_resource")
-        .paginate(ResourceId=resource.id)
-    )
-    for page in pages:
-        for tag in page["Tags"]:
-            yield Tag.from_boto3(tag)

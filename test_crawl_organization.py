@@ -1,11 +1,10 @@
 # The tests use boto3 TypedDict access. See type_defs.py for why to suppress.
 # pyright: reportTypedDictNotRequiredAccess=false
 
-# For boto3.client and pub.subscribe.
+# For boto3.client.
 # pyright: reportUnknownMemberType=false
 
 from typing import Any
-from pubsub import pub  # type: ignore[import]
 from boto3 import Session
 import boto3
 from mypy_boto3_organizations.type_defs import TagTypeDef
@@ -16,6 +15,7 @@ from unittest.mock import Mock
 from botocore.exceptions import ClientError
 from pytest_mock import MockerFixture
 import pytest
+import topics
 
 @pytest.fixture(autouse=True)
 def new_org() -> None:
@@ -24,53 +24,57 @@ def new_org() -> None:
 
 def test_in_new_org_publishes_organization() -> None:
     spy = Mock()
-    pub.subscribe(spy, "organization")
+    topics.organization.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
     client = boto3.client("organizations")
     org = Org.from_boto3(client.describe_organization()["Organization"])
-    spy.assert_called_once_with(org=org)
+    spy.assert_called_once_with(crawler, org=org)
 
 
 def test_in_new_org_publishes_root_as_resource() -> None:
     spy = Mock()
-    pub.subscribe(spy, "root")
+    topics.root.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
     client = boto3.client("organizations")
     org = Org.from_boto3(client.describe_organization()["Organization"])
     root = Root.from_boto3(client.list_roots()["Roots"][0])
-    spy.assert_called_once_with(org=org, resource=root)
+    spy.assert_called_once_with(crawler, org=org, resource=root)
 
 
 def test_in_new_org_publishes_root_as_parent() -> None:
     spy = Mock()
-    pub.subscribe(spy, "parent")
+    topics.parent.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
     client = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
-    spy.assert_called_once_with(parent=root)
+    spy.assert_called_once_with(crawler, parent=root)
 
 
 def test_in_new_org_publishes_mgmt_account() -> None:
     spy = Mock()
-    pub.subscribe(spy, "account")
+    topics.account.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
     client = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     mgmt_account = Account.from_boto3(client.list_accounts()["Accounts"][0])
-    spy.assert_called_once_with(parent=root, resource=mgmt_account)
+    spy.assert_called_once_with(crawler, parent=root, resource=mgmt_account)
 
 
 def test_in_new_org_publishes_no_orgunit() -> None:
     spy = Mock()
-    pub.subscribe(spy, "organizational_unit")
+    topics.orgunit.connect(spy)
 
     OrgCrawler(Session()).crawl()
 
@@ -79,7 +83,7 @@ def test_in_new_org_publishes_no_orgunit() -> None:
 
 def test_in_new_org_publishes_no_tag() -> None:
     spy = Mock()
-    pub.subscribe(spy, "tag")
+    topics.tag.connect(spy)
 
     OrgCrawler(Session()).crawl()
 
@@ -94,11 +98,12 @@ def test_publishes_empty_orgunit_as_resource() -> None:
     )
 
     spy = Mock()
-    pub.subscribe(spy, "organizational_unit")
+    topics.orgunit.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
-    spy.assert_called_once_with(parent=root, resource=orgunit)
+    spy.assert_called_once_with(crawler, parent=root, resource=orgunit)
 
 
 def test_publishes_empty_orgunit_as_parent() -> None:
@@ -109,11 +114,12 @@ def test_publishes_empty_orgunit_as_parent() -> None:
     )
 
     spy = Mock()
-    pub.subscribe(spy, "parent")
+    topics.parent.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
-    spy.assert_any_call(parent=orgunit)
+    spy.assert_any_call(crawler, parent=orgunit)
 
 
 def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> None:
@@ -127,11 +133,12 @@ def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> 
     client.move_account(AccountId=child_account.id, SourceParentId=root["Id"], DestinationParentId=orgunit.id)
 
     spy = Mock()
-    pub.subscribe(spy, "account")
+    topics.account.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
-    spy.assert_any_call(parent=orgunit, resource=child_account)
+    spy.assert_any_call(crawler, parent=orgunit, resource=child_account)
 
 
 def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_resource() -> None:
@@ -145,11 +152,12 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_resource
     )
 
     spy = Mock()
-    pub.subscribe(spy, "organizational_unit")
+    topics.orgunit.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
-    spy.assert_any_call(parent=parent_orgunit, resource=child_orgunit)
+    spy.assert_any_call(crawler, parent=parent_orgunit, resource=child_orgunit)
 
 
 def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent() -> None:
@@ -163,14 +171,15 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent()
     )
 
     spy = Mock()
-    pub.subscribe(spy, "parent")
+    topics.parent.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
-    spy.assert_any_call(parent=child_orgunit)
+    spy.assert_any_call(crawler, parent=child_orgunit)
 
 
-def test_when_publishes_tag_on_root() -> None:
+def test_publishes_tag_on_root() -> None:
     client = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     boto3_tag: TagTypeDef = {"Key": "RootTag", "Value": "RootValue"}
@@ -178,11 +187,12 @@ def test_when_publishes_tag_on_root() -> None:
     lib_tag = Tag.from_boto3(boto3_tag)
 
     spy = Mock()
-    pub.subscribe(spy, "tag")
+    topics.tag.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
-    spy.assert_called_once_with(resource=root, tag=lib_tag)
+    spy.assert_called_once_with(crawler, resource=root, tag=lib_tag)
 
 
 def test_publishes_tag_on_orgunit() -> None:
@@ -195,12 +205,13 @@ def test_publishes_tag_on_orgunit() -> None:
     client.tag_resource(ResourceId=orgunit.id, Tags=[boto3_tag])
 
     spy = Mock()
-    pub.subscribe(spy, "tag")
+    topics.tag.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
     lib_tag = Tag.from_boto3(boto3_tag)
-    spy.assert_called_once_with(resource=orgunit, tag=lib_tag)
+    spy.assert_called_once_with(crawler, resource=orgunit, tag=lib_tag)
 
 
 def test_publishes_tag_on_account() -> None:
@@ -211,12 +222,13 @@ def test_publishes_tag_on_account() -> None:
     client.tag_resource(ResourceId=account.id, Tags=[boto3_tag])
 
     spy = Mock()
-    pub.subscribe(spy, "tag")
+    topics.tag.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
     lib_tag = Tag.from_boto3(boto3_tag)
-    spy.assert_called_once_with(resource=account, tag=lib_tag)
+    spy.assert_called_once_with(crawler, resource=account, tag=lib_tag)
 
 
 def test_when_resource_has_two_tags_publishes_twice() -> None:
@@ -227,14 +239,15 @@ def test_when_resource_has_two_tags_publishes_twice() -> None:
     client.tag_resource(ResourceId=root.id, Tags=[boto3_tag1, boto3_tag2])
 
     spy = Mock()
-    pub.subscribe(spy, "tag")
+    topics.tag.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
 
     lib_tag1 = Tag.from_boto3(boto3_tag1)
     lib_tag2 = Tag.from_boto3(boto3_tag2)
-    spy.assert_any_call(resource=root, tag=lib_tag1)
-    spy.assert_any_call(resource=root, tag=lib_tag2)
+    spy.assert_any_call(crawler, resource=root, tag=lib_tag1)
+    spy.assert_any_call(crawler, resource=root, tag=lib_tag2)
 
 
 def test_raises_organization_error_on_client_error(mocker: MockerFixture) -> None:

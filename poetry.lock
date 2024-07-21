@@ -41,6 +41,17 @@ files = [
 ]
 
 [[package]]
+name = "blinker"
+version = "1.8.2"
+description = "Fast, simple object-to-object and broadcast signaling"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "blinker-1.8.2-py3-none-any.whl", hash = "sha256:1779309f71bf239144b9399d06ae925637cf6634cf6bd131104184531bf67c01"},
+    {file = "blinker-1.8.2.tar.gz", hash = "sha256:8f77b09d3bf7c795e969e9486f39c2c5e9c39d4ee07424be2bc594ece9642d83"},
+]
+
+[[package]]
 name = "boto3"
 version = "1.34.145"
 description = "The AWS SDK for Python"
@@ -1254,16 +1265,6 @@ files = [
 diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
-name = "pypubsub"
-version = "4.0.3"
-description = "Python Publish-Subscribe Package"
-optional = false
-python-versions = ">=3.3, <4"
-files = [
-    {file = "Pypubsub-4.0.3-py3-none-any.whl", hash = "sha256:7f716bae9388afe01ff82b264ba8a96a8ae78b42bb1f114f2716ca8f9e404e2a"},
-]
-
-[[package]]
 name = "pyright"
 version = "1.1.372"
 description = "Command line wrapper for pyright"
@@ -1607,4 +1608,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "f65dac62e0aabed2eeb9b26ed8f7e30ccb2369a7e0bb9b1277205de1786a9d9a"
+content-hash = "e023e908cdc9e228011aa91c6c28700824da4d4f338a6b9312fbf1a7ac5faf85"

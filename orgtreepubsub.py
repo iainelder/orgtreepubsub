@@ -1,37 +1,31 @@
-# For PyPubsub.
-# pyright: reportUnknownMemberType=false
-
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, Future, wait
 from typing import Callable, Iterable, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
-from pubsub import pub  # type: ignore[import]
 
 from type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource
 from type_defs import OrganizationError, OrganizationDoesNotExistError
-import topic_spec
-
-
-pub.addTopicDefnProvider(topic_spec, pub.TOPIC_TREE_FROM_CLASS)
+import topics
 
 
 Task = Callable[..., None]
+
 
 class OrgCrawler:
 
     def __init__(self, session: Session) -> None:
         self.queue = Queue[Task]()
-        self.client = session.client("organizations")
+        self.client = session.client("organizations") # pyright: ignore[reportUnknownMemberType]
 
     def crawl(self, max_workers: int = 4, loop_wait_timeout: float = 0.1) -> None:
-        pub.subscribe(self.publish_roots, "organization")
-        pub.subscribe(self.publish_organizational_units, "parent")
-        pub.subscribe(self.publish_accounts, "parent")
-        pub.subscribe(self.publish_tags, "root")
-        pub.subscribe(self.publish_tags, "organizational_unit")
-        pub.subscribe(self.publish_tags, "account")
+        topics.organization.connect(OrgCrawler.publish_roots)
+        topics.parent.connect(OrgCrawler.publish_organizational_units)
+        topics.parent.connect(OrgCrawler.publish_accounts)
+        topics.root.connect(OrgCrawler.publish_tags)
+        topics.orgunit.connect(OrgCrawler.publish_tags)
+        topics.account.connect(OrgCrawler.publish_tags)
 
         def init() -> None:
             self.publish_organization()
@@ -56,7 +50,7 @@ class OrgCrawler:
     def publish_organization(self) -> None:
         def _work() -> None:
             org = self.describe_organization()
-            pub.sendMessage("organization", org=org)
+            topics.organization.send(self, org=org)
         self.queue.put(_work)
 
     def describe_organization(self) -> Org:
@@ -65,8 +59,8 @@ class OrgCrawler:
     def publish_roots(self, org: Org) -> None:
         def _work() -> None:
             for root in self.list_roots():
-                pub.sendMessage("root", resource=root, org=org)
-                pub.sendMessage("parent", parent=root)
+                topics.root.send(self, resource=root, org=org)
+                topics.parent.send(self, parent=root)
         self.queue.put(_work)
 
     def list_roots(self) -> Iterable[Root]:
@@ -78,8 +72,8 @@ class OrgCrawler:
     def publish_organizational_units(self, parent: Parent) -> None:
         def _work() -> None:
             for orgunit in self.list_organizational_units_for_parent(parent):
-                pub.sendMessage("organizational_unit", resource=orgunit, parent=parent)
-                pub.sendMessage("parent", parent=orgunit)
+                topics.orgunit.send(self, resource=orgunit, parent=parent)
+                topics.parent.send(self, parent=orgunit)
         self.queue.put(_work)
 
     def list_organizational_units_for_parent(self, parent: Parent) -> Iterable[OrgUnit]:
@@ -94,7 +88,7 @@ class OrgCrawler:
     def publish_accounts(self, parent: Parent) -> None:
         def _work() -> None:
             for account in self.list_accounts_for_parent(parent):
-                pub.sendMessage("account", resource=account, parent=parent)
+                topics.account.send(self, resource=account, parent=parent)
         self.queue.put(_work)
 
     def list_accounts_for_parent(self, parent: Parent) -> Iterable[Account]:
@@ -117,7 +111,7 @@ class OrgCrawler:
         ) -> None:
         def _work() -> None:
             for tag in self.list_tags_for_resource(resource):
-                pub.sendMessage("tag", tag=tag, resource=resource)
+                topics.tag.send(self, tag=tag, resource=resource)
         self.queue.put(_work)
 
     def list_tags_for_resource(self, resource: Resource) -> Iterable[Tag]:

@@ -12,3 +12,9 @@ repos:
         language: system
         entry: poetry run pyright
         pass_filenames: false
+
+      - id: pytest
+        name: pytest
+        language: system
+        entry: poetry run pytest
+        pass_filenames: false

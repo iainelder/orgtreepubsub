@@ -114,7 +114,7 @@ def publish_tags(
 
 
 def describe_organization(client: OrgClient) -> Org:
-    return client.describe_organization()["Organization"]
+    return Org.from_boto3(client.describe_organization()["Organization"])
 
 
 def list_roots(client: OrgClient) -> Iterable[Root]:

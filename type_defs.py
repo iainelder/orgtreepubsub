@@ -96,8 +96,33 @@ class Root:
             policy_types=[PolicyTypeSummary.from_boto3(p) for p in root["PolicyTypes"]]
         )
 
+FeatureSet = Literal["ALL", "CONSOLIDATED_BILLING"]
 
-Org = OrganizationTypeDef
+@dataclass
+class Organization:
+
+    # The API Organization data type deprecated the AvailablePolicyTypes field.
+    # https://docs.aws.amazon.com/organizations/latest/APIReference/API_Organization.html
+    id: str
+    arn: str
+    feature_set: FeatureSet
+    master_account_arn: str
+    master_account_id: str
+    master_account_email: str
+
+    @classmethod
+    def from_boto3(cls, org: OrganizationTypeDef) -> Self:
+        return cls(
+            id=org["Id"],
+            arn=org["Arn"],
+            feature_set=org["FeatureSet"],
+            master_account_arn=org["MasterAccountArn"],
+            master_account_id=org["MasterAccountId"],
+            master_account_email=org["MasterAccountEmail"],
+        )
+
+Org = Organization
+
 Tag = TagTypeDef
 
 Parent = Union[Root, OrgUnit]

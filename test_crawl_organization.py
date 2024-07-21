@@ -5,7 +5,7 @@ from pubsub import pub  # type: ignore[import]
 from boto3 import Session
 import boto3
 from mypy_boto3_organizations.type_defs import TagTypeDef
-from type_defs import Account, OrgUnit, Root, OrganizationError
+from type_defs import Account, OrgUnit, Root, Org, OrganizationError
 from orgtreepubsub import crawl_organization
 from pytest import raises
 from unittest.mock import Mock
@@ -26,7 +26,7 @@ def test_in_new_org_publishes_organization() -> None:
     crawl_organization(Session())
 
     client = boto3.client("organizations")
-    org = client.describe_organization()["Organization"]
+    org = Org.from_boto3(client.describe_organization()["Organization"])
     spy.assert_called_once_with(org=org)
 
 
@@ -37,7 +37,7 @@ def test_in_new_org_publishes_root_as_resource() -> None:
     crawl_organization(Session())
 
     client = boto3.client("organizations")
-    org = client.describe_organization()["Organization"]
+    org = Org.from_boto3(client.describe_organization()["Organization"])
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     spy.assert_called_once_with(org=org, resource=root)
 

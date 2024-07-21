@@ -5,7 +5,7 @@ from pubsub import pub  # type: ignore[import]
 from boto3 import Session
 import boto3
 from mypy_boto3_organizations.type_defs import TagTypeDef
-from type_defs import Account, OrgUnit, Root, Org, OrganizationError
+from type_defs import Account, OrgUnit, Root, Org, Tag, OrganizationError
 from orgtreepubsub import crawl_organization
 from pytest import raises
 from unittest.mock import Mock
@@ -170,15 +170,16 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent()
 def test_when_publishes_tag_on_root() -> None:
     client = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
-    tag: TagTypeDef = {"Key": "RootTag", "Value": "RootValue"}
-    client.tag_resource(ResourceId=root.id, Tags=[tag])
+    boto3_tag: TagTypeDef = {"Key": "RootTag", "Value": "RootValue"}
+    client.tag_resource(ResourceId=root.id, Tags=[boto3_tag])
+    lib_tag = Tag.from_boto3(boto3_tag)
 
     spy = Mock()
     pub.subscribe(spy, "tag")
 
     crawl_organization(Session())
 
-    spy.assert_called_once_with(resource=root, tag=tag)
+    spy.assert_called_once_with(resource=root, tag=lib_tag)
 
 
 def test_publishes_tag_on_orgunit() -> None:
@@ -187,46 +188,50 @@ def test_publishes_tag_on_orgunit() -> None:
     orgunit = OrgUnit.from_boto3(
         client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
     )
-    tag: TagTypeDef = {"Key": "OrgunitTag", "Value": "OrgunitValue"}
-    client.tag_resource(ResourceId=orgunit.id, Tags=[tag])
+    boto3_tag: TagTypeDef = {"Key": "OrgunitTag", "Value": "OrgunitValue"}
+    client.tag_resource(ResourceId=orgunit.id, Tags=[boto3_tag])
 
     spy = Mock()
     pub.subscribe(spy, "tag")
 
     crawl_organization(Session())
 
-    spy.assert_called_once_with(resource=orgunit, tag=tag)
+    lib_tag = Tag.from_boto3(boto3_tag)
+    spy.assert_called_once_with(resource=orgunit, tag=lib_tag)
 
 
 def test_publishes_tag_on_account() -> None:
     client = boto3.client("organizations")
     request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
     account = Account.from_boto3(client.describe_account(AccountId=request["AccountId"])["Account"])
-    tag: TagTypeDef = {"Key": "AccountTag", "Value": "AccountValue"}
-    client.tag_resource(ResourceId=account.id, Tags=[tag])
+    boto3_tag: TagTypeDef = {"Key": "AccountTag", "Value": "AccountValue"}
+    client.tag_resource(ResourceId=account.id, Tags=[boto3_tag])
 
     spy = Mock()
     pub.subscribe(spy, "tag")
 
     crawl_organization(Session())
 
-    spy.assert_called_once_with(resource=account, tag=tag)
+    lib_tag = Tag.from_boto3(boto3_tag)
+    spy.assert_called_once_with(resource=account, tag=lib_tag)
 
 
 def test_when_resource_has_two_tags_publishes_twice() -> None:
     client = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
-    tag1: TagTypeDef = {"Key": "RootTag1", "Value": "RootValue1"}
-    tag2: TagTypeDef = {"Key": "RootTag2", "Value": "RootValue2"}
-    client.tag_resource(ResourceId=root.id, Tags=[tag1, tag2])
+    boto3_tag1: TagTypeDef = {"Key": "RootTag1", "Value": "RootValue1"}
+    boto3_tag2: TagTypeDef = {"Key": "RootTag2", "Value": "RootValue2"}
+    client.tag_resource(ResourceId=root.id, Tags=[boto3_tag1, boto3_tag2])
 
     spy = Mock()
     pub.subscribe(spy, "tag")
 
     crawl_organization(Session())
 
-    spy.assert_any_call(resource=root, tag=tag1)
-    spy.assert_any_call(resource=root, tag=tag2)
+    lib_tag1 = Tag.from_boto3(boto3_tag1)
+    lib_tag2 = Tag.from_boto3(boto3_tag2)
+    spy.assert_any_call(resource=root, tag=lib_tag1)
+    spy.assert_any_call(resource=root, tag=lib_tag2)
 
 
 def test_raises_organization_error_on_client_error(mocker: MockerFixture) -> None:

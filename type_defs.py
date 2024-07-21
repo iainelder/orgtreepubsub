@@ -123,7 +123,19 @@ class Organization:
 
 Org = Organization
 
-Tag = TagTypeDef
+@dataclass
+class Tag:
+
+    key: str
+    value: str
+
+    @classmethod
+    def from_boto3(cls, tag: TagTypeDef) -> Self:
+        return cls(
+            key=tag["Key"],
+            value=tag["Value"],
+        )
+
 
 Parent = Union[Root, OrgUnit]
 Resource = Union[Account, OrgUnit, Root]

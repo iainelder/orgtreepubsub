@@ -156,4 +156,4 @@ def list_tags_for_resource(client: OrgClient, resource: Resource) -> Iterable[Ta
     )
     for page in pages:
         for tag in page["Tags"]:
-            yield tag
+            yield Tag.from_boto3(tag)

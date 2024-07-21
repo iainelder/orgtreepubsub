@@ -1,4 +1,4 @@
-# pyright: reportTypedDictNotRequiredAccess=false
+# For PyPubsub.
 # pyright: reportUnknownMemberType=false
 
 from queue import Queue
@@ -65,7 +65,8 @@ def raise_if_result_is_error_else_continue(future: "Future[None]") -> None:
 
 
 def organization_does_not_exist(error: ClientError) -> bool:
-    return error.response["Error"]["Code"] == "AWSOrganizationsNotInUseException"
+    return error.response["Error"]["Code"] == "AWSOrganizationsNotInUseException" # pyright: ignore[reportTypedDictNotRequiredAccess]
+
 
 
 def publish_organization(client: OrgClient, queue: "Queue[Task]") -> None:

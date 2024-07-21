@@ -1,4 +1,8 @@
-# pyright: reportTypedDictNotRequiredAccess=false, reportUnknownMemberType=false
+# The tests use boto3 TypedDict access. See type_defs.py for why to suppress.
+# pyright: reportTypedDictNotRequiredAccess=false
+
+# For boto3.client and pub.subscribe.
+# pyright: reportUnknownMemberType=false
 
 from typing import Any
 from pubsub import pub  # type: ignore[import]

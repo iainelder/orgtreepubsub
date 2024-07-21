@@ -121,17 +121,16 @@ def list_roots(client: OrgClient) -> Iterable[Root]:
     pages = client.get_paginator("list_roots").paginate()
     for page in pages:
         for root in page["Roots"]:
-            yield root
+            yield Root.from_boto3(root)
 
 
 def list_organizational_units_for_parent(
     client: OrgClient, parent: Parent
 ) -> Iterable[OrgUnit]:
-    parent_id = parent.id if isinstance(parent, OrgUnit) else parent["Id"]
     pages = (
         client
         .get_paginator("list_organizational_units_for_parent")
-        .paginate(ParentId=parent_id)
+        .paginate(ParentId=parent.id)
     )
     for page in pages:
         for orgunit in page["OrganizationalUnits"]:
@@ -139,12 +138,10 @@ def list_organizational_units_for_parent(
 
 
 def list_accounts_for_parent(client: OrgClient, parent: Parent) -> Iterable[Account]:
-    parent_id = parent.id if isinstance(parent, OrgUnit) else parent["Id"]
-
     pages = (
         client
         .get_paginator("list_accounts_for_parent")
-        .paginate(ParentId=parent_id)
+        .paginate(ParentId=parent.id)
     )
     for page in pages:
         for account in page["Accounts"]:
@@ -152,11 +149,10 @@ def list_accounts_for_parent(client: OrgClient, parent: Parent) -> Iterable[Acco
 
 
 def list_tags_for_resource(client: OrgClient, resource: Resource) -> Iterable[Tag]:
-    resource_id = resource.id if isinstance(resource, Account) or isinstance(resource, OrgUnit) else resource["Id"]
     pages = (
         client
         .get_paginator("list_tags_for_resource")
-        .paginate(ResourceId=resource_id)
+        .paginate(ResourceId=resource.id)
     )
     for page in pages:
         for tag in page["Tags"]:

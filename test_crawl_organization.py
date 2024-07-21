@@ -5,7 +5,7 @@ from pubsub import pub  # type: ignore[import]
 from boto3 import Session
 import boto3
 from mypy_boto3_organizations.type_defs import TagTypeDef
-from type_defs import Account, OrgUnit, OrganizationError
+from type_defs import Account, OrgUnit, Root, OrganizationError
 from orgtreepubsub import crawl_organization
 from pytest import raises
 from unittest.mock import Mock
@@ -38,7 +38,7 @@ def test_in_new_org_publishes_root_as_resource() -> None:
 
     client = boto3.client("organizations")
     org = client.describe_organization()["Organization"]
-    root = client.list_roots()["Roots"][0]
+    root = Root.from_boto3(client.list_roots()["Roots"][0])
     spy.assert_called_once_with(org=org, resource=root)
 
 
@@ -49,7 +49,7 @@ def test_in_new_org_publishes_root_as_parent() -> None:
     crawl_organization(Session())
 
     client = boto3.client("organizations")
-    root = client.list_roots()["Roots"][0]
+    root = Root.from_boto3(client.list_roots()["Roots"][0])
     spy.assert_called_once_with(parent=root)
 
 
@@ -60,7 +60,7 @@ def test_in_new_org_publishes_mgmt_account() -> None:
     crawl_organization(Session())
 
     client = boto3.client("organizations")
-    root = client.list_roots()["Roots"][0]
+    root = Root.from_boto3(client.list_roots()["Roots"][0])
     mgmt_account = Account.from_boto3(client.list_accounts()["Accounts"][0])
     spy.assert_called_once_with(parent=root, resource=mgmt_account)
 
@@ -85,9 +85,9 @@ def test_in_new_org_publishes_no_tag() -> None:
 
 def test_publishes_empty_orgunit_as_resource() -> None:
     client = boto3.client("organizations")
-    root = client.list_roots()["Roots"][0]
+    root = Root.from_boto3(client.list_roots()["Roots"][0])
     orgunit = OrgUnit.from_boto3(
-        client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+        client.create_organizational_unit(ParentId=root.id, Name="OU1")["OrganizationalUnit"]
     )
 
     spy = Mock()
@@ -169,9 +169,9 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent()
 
 def test_when_publishes_tag_on_root() -> None:
     client = boto3.client("organizations")
-    root = client.list_roots()["Roots"][0]
+    root = Root.from_boto3(client.list_roots()["Roots"][0])
     tag: TagTypeDef = {"Key": "RootTag", "Value": "RootValue"}
-    client.tag_resource(ResourceId=root["Id"], Tags=[tag])
+    client.tag_resource(ResourceId=root.id, Tags=[tag])
 
     spy = Mock()
     pub.subscribe(spy, "tag")
@@ -215,10 +215,10 @@ def test_publishes_tag_on_account() -> None:
 
 def test_when_resource_has_two_tags_publishes_twice() -> None:
     client = boto3.client("organizations")
-    root = client.list_roots()["Roots"][0]
+    root = Root.from_boto3(client.list_roots()["Roots"][0])
     tag1: TagTypeDef = {"Key": "RootTag1", "Value": "RootValue1"}
     tag2: TagTypeDef = {"Key": "RootTag2", "Value": "RootValue2"}
-    client.tag_resource(ResourceId=root["Id"], Tags=[tag1, tag2])
+    client.tag_resource(ResourceId=root.id, Tags=[tag1, tag2])
 
     spy = Mock()
     pub.subscribe(spy, "tag")

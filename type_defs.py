@@ -14,6 +14,7 @@ from mypy_boto3_organizations.type_defs import (
     OrganizationalUnitTypeDef,
     AccountTypeDef,
     TagTypeDef,
+    PolicyTypeSummaryTypeDef,
 )
 
 AccountJoinedMethod = Literal["CREATED", "INVITED"]
@@ -58,9 +59,45 @@ class OrgUnit:
             name=account["Name"],
         )
 
+PolicyType = Literal[
+    "AISERVICES_OPT_OUT_POLICY", "BACKUP_POLICY", "SERVICE_CONTROL_POLICY", "TAG_POLICY"
+]
+PolicyStatus = Literal["ENABLED", "PENDING_DISABLE", "PENDING_ENABLE"]
+
+
+@dataclass
+class PolicyTypeSummary:
+
+    type: PolicyType
+    status: PolicyStatus
+
+    @classmethod
+    def from_boto3(cls, policy_type_summary: PolicyTypeSummaryTypeDef) -> Self:
+        return cls(
+            type=policy_type_summary["Type"],
+            status=policy_type_summary["Status"],
+        )
+
+
+@dataclass
+class Root:
+
+    id: str
+    arn: str
+    name: str
+    policy_types: list[PolicyTypeSummary]
+
+    @classmethod
+    def from_boto3(cls, root: RootTypeDef) -> Self:
+        return cls(
+            id=root["Id"],
+            arn=root["Arn"],
+            name=root["Name"],
+            policy_types=[PolicyTypeSummary.from_boto3(p) for p in root["PolicyTypes"]]
+        )
+
 
 Org = OrganizationTypeDef
-Root = RootTypeDef
 Tag = TagTypeDef
 
 Parent = Union[Root, OrgUnit]

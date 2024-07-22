@@ -4,6 +4,7 @@ from typing import Callable, Iterable, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
+from mypy_boto3_organizations import OrganizationsClient
 
 from type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource
 from type_defs import OrganizationError, OrganizationDoesNotExistError
@@ -17,7 +18,7 @@ class OrgCrawler:
 
     def __init__(self, session: Session) -> None:
         self.queue = Queue[Task]()
-        self.client = session.client("organizations") # pyright: ignore[reportUnknownMemberType]
+        self.client: OrganizationsClient = session.client("organizations")
 
     def crawl(self, max_workers: int = 4, loop_wait_timeout: float = 0.1) -> None:
         topics.organization.connect(OrgCrawler.publish_roots)

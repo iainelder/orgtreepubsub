@@ -1,12 +1,10 @@
 # The tests use boto3 TypedDict access. See type_defs.py for why to suppress.
 # pyright: reportTypedDictNotRequiredAccess=false
 
-# For boto3.client.
-# pyright: reportUnknownMemberType=false
-
 from typing import Any
 from boto3 import Session
 import boto3
+from mypy_boto3_organizations import OrganizationsClient
 from mypy_boto3_organizations.type_defs import TagTypeDef
 from type_defs import Account, OrgUnit, Root, Org, Tag, OrganizationError
 from orgtreepubsub import OrgCrawler
@@ -16,6 +14,7 @@ from botocore.exceptions import ClientError
 from pytest_mock import MockerFixture
 import pytest
 import topics
+
 
 @pytest.fixture(autouse=True)
 def new_org() -> None:
@@ -29,7 +28,7 @@ def test_in_new_org_publishes_organization() -> None:
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     org = Org.from_boto3(client.describe_organization()["Organization"])
     spy.assert_called_once_with(crawler, org=org)
 
@@ -41,7 +40,7 @@ def test_in_new_org_publishes_root_as_resource() -> None:
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     org = Org.from_boto3(client.describe_organization()["Organization"])
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     spy.assert_called_once_with(crawler, org=org, resource=root)
@@ -54,7 +53,7 @@ def test_in_new_org_publishes_root_as_parent() -> None:
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     spy.assert_called_once_with(crawler, parent=root)
 
@@ -66,7 +65,7 @@ def test_in_new_org_publishes_mgmt_account() -> None:
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     mgmt_account = Account.from_boto3(client.list_accounts()["Accounts"][0])
     spy.assert_called_once_with(crawler, parent=root, resource=mgmt_account)
@@ -91,7 +90,7 @@ def test_in_new_org_publishes_no_tag() -> None:
 
 
 def test_publishes_empty_orgunit_as_resource() -> None:
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     orgunit = OrgUnit.from_boto3(
         client.create_organizational_unit(ParentId=root.id, Name="OU1")["OrganizationalUnit"]
@@ -107,7 +106,7 @@ def test_publishes_empty_orgunit_as_resource() -> None:
 
 
 def test_publishes_empty_orgunit_as_parent() -> None:
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     orgunit = OrgUnit.from_boto3(
         client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
@@ -123,7 +122,7 @@ def test_publishes_empty_orgunit_as_parent() -> None:
 
 
 def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> None:
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     orgunit = OrgUnit.from_boto3(
         client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
@@ -142,7 +141,7 @@ def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> 
 
 
 def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_resource() -> None:
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     parent_orgunit = OrgUnit.from_boto3(
         client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
@@ -161,7 +160,7 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_resource
 
 
 def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent() -> None:
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     parent_orgunit = OrgUnit.from_boto3(
         client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
@@ -180,7 +179,7 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent()
 
 
 def test_publishes_tag_on_root() -> None:
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     boto3_tag: TagTypeDef = {"Key": "RootTag", "Value": "RootValue"}
     client.tag_resource(ResourceId=root.id, Tags=[boto3_tag])
@@ -196,7 +195,7 @@ def test_publishes_tag_on_root() -> None:
 
 
 def test_publishes_tag_on_orgunit() -> None:
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     orgunit = OrgUnit.from_boto3(
         client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
@@ -215,7 +214,7 @@ def test_publishes_tag_on_orgunit() -> None:
 
 
 def test_publishes_tag_on_account() -> None:
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     request = client.create_account(AccountName="Account1", Email="1@aws.com")["CreateAccountStatus"]
     account = Account.from_boto3(client.describe_account(AccountId=request["AccountId"])["Account"])
     boto3_tag: TagTypeDef = {"Key": "AccountTag", "Value": "AccountValue"}
@@ -232,7 +231,7 @@ def test_publishes_tag_on_account() -> None:
 
 
 def test_when_resource_has_two_tags_publishes_twice() -> None:
-    client = boto3.client("organizations")
+    client: OrganizationsClient = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     boto3_tag1: TagTypeDef = {"Key": "RootTag1", "Value": "RootValue1"}
     boto3_tag2: TagTypeDef = {"Key": "RootTag2", "Value": "RootValue2"}

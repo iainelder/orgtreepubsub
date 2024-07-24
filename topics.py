@@ -3,7 +3,7 @@ from blinker import signal
 
 organization = signal("organization")
 
-parent = signal("parent")
+parentage = signal("parentage")
 
 root = signal("root")
 

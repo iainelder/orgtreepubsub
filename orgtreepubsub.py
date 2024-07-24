@@ -22,9 +22,11 @@ class OrgCrawler:
 
     def crawl(self, max_workers: int = 4, loop_wait_timeout: float = 0.1) -> None:
         topics.organization.connect(OrgCrawler.publish_roots)
-        topics.parent.connect(OrgCrawler.publish_organizational_units)
-        topics.parent.connect(OrgCrawler.publish_accounts)
+        topics.root.connect(OrgCrawler.publish_orgunits_under_resource)
+        topics.root.connect(OrgCrawler.publish_accounts_under_resource)
         topics.root.connect(OrgCrawler.publish_tags)
+        topics.orgunit.connect(OrgCrawler.publish_orgunits_under_resource)
+        topics.orgunit.connect(OrgCrawler.publish_accounts_under_resource)
         topics.orgunit.connect(OrgCrawler.publish_tags)
         topics.account.connect(OrgCrawler.publish_tags)
 
@@ -60,8 +62,8 @@ class OrgCrawler:
     def publish_roots(self, org: Org) -> None:
         def _work() -> None:
             for root in self.list_roots():
-                topics.root.send(self, resource=root, org=org)
-                topics.parent.send(self, parent=root)
+                topics.root.send(self, resource=root)
+                topics.parentage.send(self, parent=org, child=root)
         self.queue.put(_work)
 
     def list_roots(self) -> Iterable[Root]:
@@ -70,11 +72,11 @@ class OrgCrawler:
             for root in page["Roots"]:
                 yield Root.from_boto3(root)
 
-    def publish_organizational_units(self, parent: Parent) -> None:
+    def publish_orgunits_under_resource(self, resource: Parent) -> None:
         def _work() -> None:
-            for orgunit in self.list_organizational_units_for_parent(parent):
-                topics.orgunit.send(self, resource=orgunit, parent=parent)
-                topics.parent.send(self, parent=orgunit)
+            for orgunit in self.list_organizational_units_for_parent(resource):
+                topics.orgunit.send(self, resource=orgunit)
+                topics.parentage.send(self, parent=resource, child=orgunit)
         self.queue.put(_work)
 
     def list_organizational_units_for_parent(self, parent: Parent) -> Iterable[OrgUnit]:
@@ -86,10 +88,11 @@ class OrgCrawler:
             for orgunit in page["OrganizationalUnits"]:
                 yield OrgUnit.from_boto3(orgunit)
 
-    def publish_accounts(self, parent: Parent) -> None:
+    def publish_accounts_under_resource(self, resource: Parent) -> None:
         def _work() -> None:
-            for account in self.list_accounts_for_parent(parent):
-                topics.account.send(self, resource=account, parent=parent)
+            for account in self.list_accounts_for_parent(resource):
+                topics.account.send(self, resource=account)
+                topics.parentage.send(self, parent=resource, child=account)
         self.queue.put(_work)
 
     def list_accounts_for_parent(self, parent: Parent) -> Iterable[Account]:
@@ -101,15 +104,7 @@ class OrgCrawler:
             for account in page["Accounts"]:
                 yield Account.from_boto3(account)
 
-    # PubSub needs the org and parent parameters to send events. The root event
-    # has an org property and the account and orgunit events have a parent
-    # property. The tag publisher ignores these properties,
-    def publish_tags(
-            self,
-            resource: Resource,
-            org: Org|None=None,
-            parent: Parent|None=None,
-        ) -> None:
+    def publish_tags(self, resource: Resource) -> None:
         def _work() -> None:
             for tag in self.list_tags_for_resource(resource):
                 topics.tag.send(self, tag=tag, resource=resource)

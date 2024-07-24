@@ -33,7 +33,7 @@ def test_in_new_org_publishes_organization() -> None:
     spy.assert_called_once_with(crawler, org=org)
 
 
-def test_in_new_org_publishes_root_as_resource() -> None:
+def test_in_new_org_publishes_root_resource() -> None:
     spy = Mock()
     topics.root.connect(spy)
 
@@ -41,24 +41,24 @@ def test_in_new_org_publishes_root_as_resource() -> None:
     crawler.crawl()
 
     client: OrganizationsClient = boto3.client("organizations")
-    org = Org.from_boto3(client.describe_organization()["Organization"])
     root = Root.from_boto3(client.list_roots()["Roots"][0])
-    spy.assert_called_once_with(crawler, org=org, resource=root)
+    spy.assert_called_once_with(crawler, resource=root)
 
 
-def test_in_new_org_publishes_root_as_parent() -> None:
+def test_in_new_org_publishes_root_parentage() -> None:
     spy = Mock()
-    topics.parent.connect(spy)
+    topics.parentage.connect(spy)
 
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
     client: OrganizationsClient = boto3.client("organizations")
+    org = Org.from_boto3(client.describe_organization()["Organization"])
     root = Root.from_boto3(client.list_roots()["Roots"][0])
-    spy.assert_called_once_with(crawler, parent=root)
+    spy.assert_any_call(crawler, parent=org, child=root)
 
 
-def test_in_new_org_publishes_mgmt_account() -> None:
+def test_in_new_org_publishes_mgmt_account_resource() -> None:
     spy = Mock()
     topics.account.connect(spy)
 
@@ -66,9 +66,21 @@ def test_in_new_org_publishes_mgmt_account() -> None:
     crawler.crawl()
 
     client: OrganizationsClient = boto3.client("organizations")
+    mgmt_account = Account.from_boto3(client.list_accounts()["Accounts"][0])
+    spy.assert_called_once_with(crawler, resource=mgmt_account)
+
+
+def test_in_new_org_publishes_mgmt_account_parentage() -> None:
+    spy = Mock()
+    topics.parentage.connect(spy)
+
+    crawler = OrgCrawler(Session())
+    crawler.crawl()
+
+    client: OrganizationsClient = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     mgmt_account = Account.from_boto3(client.list_accounts()["Accounts"][0])
-    spy.assert_called_once_with(crawler, parent=root, resource=mgmt_account)
+    spy.assert_any_call(crawler, parent=root, child=mgmt_account)
 
 
 def test_in_new_org_publishes_no_orgunit() -> None:
@@ -89,7 +101,7 @@ def test_in_new_org_publishes_no_tag() -> None:
     spy.assert_not_called()
 
 
-def test_publishes_empty_orgunit_as_resource() -> None:
+def test_publishes_empty_orgunit_resource() -> None:
     client: OrganizationsClient = boto3.client("organizations")
     root = Root.from_boto3(client.list_roots()["Roots"][0])
     orgunit = OrgUnit.from_boto3(
@@ -102,26 +114,26 @@ def test_publishes_empty_orgunit_as_resource() -> None:
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
-    spy.assert_called_once_with(crawler, parent=root, resource=orgunit)
+    spy.assert_called_once_with(crawler, resource=orgunit)
 
 
-def test_publishes_empty_orgunit_as_parent() -> None:
+def test_publishes_empty_orgunit_parentage() -> None:
     client: OrganizationsClient = boto3.client("organizations")
-    root = client.list_roots()["Roots"][0]
+    root = Root.from_boto3(client.list_roots()["Roots"][0])
     orgunit = OrgUnit.from_boto3(
-        client.create_organizational_unit(ParentId=root["Id"], Name="OU1")["OrganizationalUnit"]
+        client.create_organizational_unit(ParentId=root.id, Name="OU1")["OrganizationalUnit"]
     )
 
     spy = Mock()
-    topics.parent.connect(spy)
+    topics.parentage.connect(spy)
 
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
-    spy.assert_any_call(crawler, parent=orgunit)
+    spy.assert_any_call(crawler, parent=root, child=orgunit)
 
 
-def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> None:
+def test_when_orgunit_contains_account_crawl_publishes_account_resource() -> None:
     client: OrganizationsClient = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     orgunit = OrgUnit.from_boto3(
@@ -137,10 +149,10 @@ def test_when_orgunit_contains_account_crawl_publishes_account_as_resource() -> 
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
-    spy.assert_any_call(crawler, parent=orgunit, resource=child_account)
+    spy.assert_any_call(crawler, resource=child_account)
 
 
-def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_resource() -> None:
+def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_resource() -> None:
     client: OrganizationsClient = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     parent_orgunit = OrgUnit.from_boto3(
@@ -156,10 +168,10 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_resource
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
-    spy.assert_any_call(crawler, parent=parent_orgunit, resource=child_orgunit)
+    spy.assert_any_call(crawler, resource=child_orgunit)
 
 
-def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent() -> None:
+def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_parentage() -> None:
     client: OrganizationsClient = boto3.client("organizations")
     root = client.list_roots()["Roots"][0]
     parent_orgunit = OrgUnit.from_boto3(
@@ -170,12 +182,12 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_as_parent()
     )
 
     spy = Mock()
-    topics.parent.connect(spy)
+    topics.parentage.connect(spy)
 
     crawler = OrgCrawler(Session())
     crawler.crawl()
 
-    spy.assert_any_call(crawler, parent=child_orgunit)
+    spy.assert_any_call(crawler, parent=parent_orgunit, child=child_orgunit)
 
 
 def test_publishes_tag_on_root() -> None:

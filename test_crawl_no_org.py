@@ -6,4 +6,5 @@ from boto3.session import Session
 
 def test_raises_error() -> None:
     with pytest.raises(OrganizationDoesNotExistError):
-        OrgCrawler(Session()).crawl()
+        crawler = OrgCrawler.top_down_tree_and_tags(Session())
+        crawler.crawl()

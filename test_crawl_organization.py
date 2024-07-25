@@ -13,7 +13,6 @@ from unittest.mock import Mock
 from botocore.exceptions import ClientError
 from pytest_mock import MockerFixture
 import pytest
-import topics
 
 
 @pytest.fixture(autouse=True)
@@ -23,9 +22,9 @@ def new_org() -> None:
 
 def test_in_new_org_publishes_organization() -> None:
     spy = Mock()
-    topics.organization.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_organization.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     client: OrganizationsClient = boto3.client("organizations")
@@ -35,9 +34,9 @@ def test_in_new_org_publishes_organization() -> None:
 
 def test_in_new_org_publishes_root_resource() -> None:
     spy = Mock()
-    topics.root.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_root.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     client: OrganizationsClient = boto3.client("organizations")
@@ -47,9 +46,9 @@ def test_in_new_org_publishes_root_resource() -> None:
 
 def test_in_new_org_publishes_root_parentage() -> None:
     spy = Mock()
-    topics.parentage.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_parentage.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     client: OrganizationsClient = boto3.client("organizations")
@@ -60,9 +59,9 @@ def test_in_new_org_publishes_root_parentage() -> None:
 
 def test_in_new_org_publishes_mgmt_account_resource() -> None:
     spy = Mock()
-    topics.account.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_account.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     client: OrganizationsClient = boto3.client("organizations")
@@ -72,9 +71,9 @@ def test_in_new_org_publishes_mgmt_account_resource() -> None:
 
 def test_in_new_org_publishes_mgmt_account_parentage() -> None:
     spy = Mock()
-    topics.parentage.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_parentage.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     client: OrganizationsClient = boto3.client("organizations")
@@ -85,18 +84,20 @@ def test_in_new_org_publishes_mgmt_account_parentage() -> None:
 
 def test_in_new_org_publishes_no_orgunit() -> None:
     spy = Mock()
-    topics.orgunit.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_orgunit.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler.crawl()
 
     spy.assert_not_called()
 
 
 def test_in_new_org_publishes_no_tag() -> None:
     spy = Mock()
-    topics.tag.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_tag.connect(spy)
 
-    OrgCrawler(Session()).crawl()
+    crawler.crawl()
 
     spy.assert_not_called()
 
@@ -109,9 +110,9 @@ def test_publishes_empty_orgunit_resource() -> None:
     )
 
     spy = Mock()
-    topics.orgunit.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_orgunit.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     spy.assert_called_once_with(crawler, resource=orgunit)
@@ -125,9 +126,9 @@ def test_publishes_empty_orgunit_parentage() -> None:
     )
 
     spy = Mock()
-    topics.parentage.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_parentage.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     spy.assert_any_call(crawler, parent=root, child=orgunit)
@@ -144,9 +145,9 @@ def test_when_orgunit_contains_account_crawl_publishes_account_resource() -> Non
     client.move_account(AccountId=child_account.id, SourceParentId=root["Id"], DestinationParentId=orgunit.id)
 
     spy = Mock()
-    topics.account.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_account.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     spy.assert_any_call(crawler, resource=child_account)
@@ -163,9 +164,9 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_resource() 
     )
 
     spy = Mock()
-    topics.orgunit.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_orgunit.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     spy.assert_any_call(crawler, resource=child_orgunit)
@@ -182,9 +183,9 @@ def test_when_orgunit_contains_orgunit_crawl_publishes_child_orgunit_parentage()
     )
 
     spy = Mock()
-    topics.parentage.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_parentage.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     spy.assert_any_call(crawler, parent=parent_orgunit, child=child_orgunit)
@@ -198,9 +199,9 @@ def test_publishes_tag_on_root() -> None:
     lib_tag = Tag.from_boto3(boto3_tag)
 
     spy = Mock()
-    topics.tag.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_tag.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     spy.assert_called_once_with(crawler, resource=root, tag=lib_tag)
@@ -216,9 +217,9 @@ def test_publishes_tag_on_orgunit() -> None:
     client.tag_resource(ResourceId=orgunit.id, Tags=[boto3_tag])
 
     spy = Mock()
-    topics.tag.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_tag.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     lib_tag = Tag.from_boto3(boto3_tag)
@@ -233,9 +234,9 @@ def test_publishes_tag_on_account() -> None:
     client.tag_resource(ResourceId=account.id, Tags=[boto3_tag])
 
     spy = Mock()
-    topics.tag.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_tag.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     lib_tag = Tag.from_boto3(boto3_tag)
@@ -250,9 +251,9 @@ def test_when_resource_has_two_tags_publishes_twice() -> None:
     client.tag_resource(ResourceId=root.id, Tags=[boto3_tag1, boto3_tag2])
 
     spy = Mock()
-    topics.tag.connect(spy)
+    crawler = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler.on_tag.connect(spy)
 
-    crawler = OrgCrawler(Session())
     crawler.crawl()
 
     lib_tag1 = Tag.from_boto3(boto3_tag1)
@@ -273,5 +274,22 @@ def test_raises_organization_error_on_client_error(mocker: MockerFixture) -> Non
     )
 
     with raises(OrganizationError) as exc:
-        OrgCrawler(Session()).crawl()
+        crawler = OrgCrawler.top_down_tree_and_tags(Session())
+        crawler.crawl()
     assert type(exc.value.__cause__) == ClientError
+
+
+def test_crawler_events_are_isolated() -> None:
+
+    spy1 = Mock()
+    crawler1 = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler1.on_organization.connect(spy1)
+
+    spy2 = Mock()
+    crawler2 = OrgCrawler.top_down_tree_and_tags(Session())
+    crawler2.on_organization.connect(spy2)
+
+    crawler1.crawl()
+
+    assert spy1.called
+    assert not spy2.called

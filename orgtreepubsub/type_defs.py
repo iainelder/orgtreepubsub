@@ -7,7 +7,6 @@ from datetime import datetime
 
 from typing import Literal, Self
 
-from mypy_boto3_organizations.client import OrganizationsClient
 from mypy_boto3_organizations.type_defs import (
     OrganizationTypeDef,
     RootTypeDef,
@@ -139,8 +138,6 @@ class Tag:
 
 Parent = Root|OrgUnit
 Resource = Account|OrgUnit|Root
-
-OrgClient = OrganizationsClient
 
 
 class OrganizationError(Exception):

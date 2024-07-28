@@ -1,6 +1,6 @@
 from queue import Queue
 from concurrent.futures import ThreadPoolExecutor, Future, wait
-from typing import Callable, Iterable, Set, Self
+from typing import Callable, Iterable, Set
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -31,23 +31,6 @@ class OrgCrawler:
         self.on_parentage = Signal()
         self.on_tag = Signal()
 
-    @classmethod
-    def top_down_tree_and_tags(cls, session: Session) -> Self:
-        self = cls(session)
-
-        self.init = self.publish_organization
-
-        self.on_organization.connect(OrgCrawler.publish_roots)
-        self.on_root.connect(OrgCrawler.publish_orgunits_under_resource)
-        self.on_root.connect(OrgCrawler.publish_accounts_under_resource)
-        self.on_root.connect(OrgCrawler.publish_tags)
-        self.on_orgunit.connect(OrgCrawler.publish_orgunits_under_resource)
-        self.on_orgunit.connect(OrgCrawler.publish_accounts_under_resource)
-        self.on_orgunit.connect(OrgCrawler.publish_tags)
-        self.on_account.connect(OrgCrawler.publish_tags)
-
-        return self
-
     def crawl(self, max_workers: int = 4, loop_wait_timeout: float = 0.1) -> None:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures: Set[Future[None]] = {executor.submit(self.init)}
@@ -75,7 +58,7 @@ class OrgCrawler:
     def describe_organization(self) -> Org:
         return Org.from_boto3(self.client.describe_organization()["Organization"])
 
-    def publish_roots(self, org: Org) -> None:
+    def publish_roots(self) -> None:
         def _work() -> None:
             for root in self.list_roots():
                 self.on_root.send(self, resource=root)

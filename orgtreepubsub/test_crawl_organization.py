@@ -6,8 +6,8 @@ from boto3 import Session
 import boto3
 from mypy_boto3_organizations import OrganizationsClient
 from mypy_boto3_organizations.type_defs import TagTypeDef
-from type_defs import Account, OrgUnit, Root, Org, Tag, OrganizationError
-from orgtreepubsub import OrgCrawler
+from .type_defs import Account, OrgUnit, Root, Org, Tag, OrganizationError
+from .orgtreepubsub import OrgCrawler
 from pytest import raises
 from unittest.mock import Mock
 from botocore.exceptions import ClientError

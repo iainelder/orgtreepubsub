@@ -1,6 +1,6 @@
 import pytest
-from type_defs import OrganizationDoesNotExistError
-from orgtreepubsub import OrgCrawler
+from .type_defs import OrganizationDoesNotExistError
+from .orgtreepubsub import OrgCrawler
 from boto3.session import Session
 
 

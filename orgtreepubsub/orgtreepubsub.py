@@ -79,7 +79,6 @@ class OrgCrawler:
         def _work() -> None:
             for root in self.list_roots():
                 self.on_root.send(self, resource=root)
-                self.on_parentage.send(self, parent=org, child=root)
         self.queue.put(_work)
 
     def list_roots(self) -> Iterable[Root]:

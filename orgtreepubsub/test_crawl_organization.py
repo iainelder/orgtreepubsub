@@ -44,19 +44,6 @@ def test_in_new_org_publishes_root_resource() -> None:
     spy.assert_called_once_with(crawler, resource=root)
 
 
-def test_in_new_org_publishes_root_parentage() -> None:
-    spy = Mock()
-    crawler = OrgCrawler.top_down_tree_and_tags(Session())
-    crawler.on_parentage.connect(spy)
-
-    crawler.crawl()
-
-    client: OrganizationsClient = boto3.client("organizations")
-    org = Org.from_boto3(client.describe_organization()["Organization"])
-    root = Root.from_boto3(client.list_roots()["Roots"][0])
-    spy.assert_any_call(crawler, parent=org, child=root)
-
-
 def test_in_new_org_publishes_mgmt_account_resource() -> None:
     spy = Mock()
     crawler = OrgCrawler.top_down_tree_and_tags(Session())

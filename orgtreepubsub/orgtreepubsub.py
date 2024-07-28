@@ -8,7 +8,6 @@ from mypy_boto3_organizations import OrganizationsClient
 
 from .type_defs import Account, Org, OrgUnit, Root, Tag, Parent, Resource
 from .type_defs import OrganizationError, OrganizationDoesNotExistError
-# import topics
 from blinker import Signal
 
 

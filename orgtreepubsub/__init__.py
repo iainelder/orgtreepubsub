@@ -1,6 +1,7 @@
 from .orgtreepubsub import OrgCrawler
 from .type_defs import (
     Account,
+    Child,
     Org,
     Organization,
     OrgUnit,
@@ -12,6 +13,7 @@ from .type_defs import (
 
 __all__ = [
     "Account",
+    "Child",
     "Org",
     "Organization",
     "OrgCrawler",

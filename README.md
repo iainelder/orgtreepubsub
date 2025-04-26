@@ -11,6 +11,19 @@ use.
 orgtreepubsub works like an event-based crawler of the AWS organization
 structure.
 
+## Publish to PyPI
+
+Required for downstream projects such as [aws-org-tree](https://github.com/iainelder/aws-org-tree).
+
+Not the best way to do this, just what worked to unblock downstream.
+
+```bash
+poetry publish --build
+poetry config repositories.test-pypi https://test.pypi.org/legacy/
+poetry config pypi-token.test-pypi pypi-...
+poetry publish -r test-pypi
+```
+
 ## Browsing
 
 If you already have an org dump, you can view it like this.
